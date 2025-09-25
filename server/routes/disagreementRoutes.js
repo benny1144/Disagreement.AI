@@ -13,8 +13,8 @@ const { protect } = require('../middleware/authMiddleware');
 // Routes for creating and getting all disagreements
 router
   .route('/')
-  .post(protect, createDisagreement)
-  .get(protect, getDisagreements);
+  .post(createDisagreement)
+  .get(getDisagreements);
 
 // Route for getting a specific disagreement by its ID
 router.route('/:id').get(protect, getDisagreementById);

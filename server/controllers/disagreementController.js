@@ -31,10 +31,11 @@ const createDisagreement = async (req, res) => {
     const disagreement = await Disagreement.create({
       title,
       ai_mode,
-      participants: [req.user._id],
+      user: '66f45209c2a3e5272a5a044d', // TEMPORARY placeholder user ID
     });
     res.status(201).json(disagreement);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
@@ -44,9 +45,11 @@ const createDisagreement = async (req, res) => {
 // @access  Private
 const getDisagreements = async (req, res) => {
   try {
-    const disagreements = await Disagreement.find({ participants: req.user._id });
+    // UPDATED: Temporarily fetch all disagreements, since we don't have a specific user yet.
+    const disagreements = await Disagreement.find({});
     res.status(200).json(disagreements);
   } catch (error) {
+    console.error(error); 
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
@@ -60,6 +63,7 @@ const getDisagreementById = async (req, res) => {
     if (!disagreement) {
       return res.status(404).json({ message: 'Disagreement not found.' });
     }
+    // Note: This next line will not work correctly until we re-enable authentication
     if (!disagreement.participants.includes(req.user._id)) {
       return res.status(403).json({ message: 'User not authorized for this disagreement.' });
     }

@@ -4,25 +4,20 @@ This document provides guidance for AI coding agents working on the Disagreement
 
 ## Architecture
 
-This is a MERN stack application with a client-server architecture.
+This is a monorepo-style project with a separate client and server.
 
-*   **`client/`**: A React application built with Vite.
-    *   The main entry point is `client/src/main.jsx`.
-    *   The root component is `client/src/App.jsx`.
-    *   Styling is done with CSS, likely with Tailwind CSS given the `tailwind.config.js`.
+*   **`client/`**: A Next.js application using the App Router.
+    *   The main entry point is `client/src/app/layout.tsx`.
+    *   Routing is handled by directories within `client/src/app/`.
+    *   Styling is done with Tailwind CSS.
 *   **`server/`**: A Node.js/Express.js application.
     *   The main entry point is `server/index.js`.
-    *   It uses a Model-Controller-Route pattern:
-        *   **`server/models/`**: Mongoose schemas for database models (e.g., `User.js`, `Disagreement.js`).
-        *   **`server/controllers/`**: Business logic for handling API requests.
-        *   **`server/routes/`**: API endpoint definitions.
-    *   **Authentication**: Implemented using JSON Web Tokens (JWT). See `server/middleware/authMiddleware.js`.
-    *   **Real-time Features**: Uses `socket.io` for real-time communication.
-    *   **External Services**: Integrates with AWS S3 for file storage and the OpenAI API.
+    *   It uses a Model-Controller-Route pattern.
+    *   Authentication is implemented using JSON Web Tokens (JWT).
 
 ## Developer Workflows
 
-### Client
+### Client (Next.js)
 
 To run the client development server:
 
@@ -32,14 +27,7 @@ npm install
 npm run dev
 ```
 
-To build the client for production:
-
-```bash
-cd client
-npm run build
-```
-
-### Server
+### Server (Express)
 
 To run the server development server (with auto-reloading):
 
@@ -49,24 +37,11 @@ npm install
 npm run dev
 ```
 
-To start the server for production:
-
-```bash
-cd server
-npm start
-```
-
 ## Key Files and Directories
 
-*   `client/src/App.jsx`: The main React component.
-*   `server/server.js`: The core Express server setup.
+*   `client/src/app/layout.tsx`: The root layout for the Next.js app.
+*   `client/src/app/page.tsx`: The home page.
+*   `server/index.js`: The core Express server setup.
 *   `server/routes/disagreementRoutes.js`: API routes related to disagreements.
 *   `server/controllers/disagreementController.js`: Logic for handling disagreement-related requests.
-*   `server/models/Disagreement.js`: The Mongoose model for disagreements.
 *   `server/middleware/authMiddleware.js`: JWT authentication middleware.
-
-## Conventions
-
-*   The backend follows a typical MVC-like structure. When adding new features, create or update the model, controller, and route files accordingly.
-*   API routes are versioned or grouped under `/api`. For example, user routes are under `/api/users`.
-*   React components are written in JSX.

@@ -1,16 +1,28 @@
-const express = require('express');
+userRoutes.js
+import express from 'express';
+import {
+  registerUser,
+  loginUser,
+  getMe,
+} from '../controllers/userController.js';
+import { protect } from '../middleware/authMiddleware.js';
+import { check } from 'express-validator';
+
 const router = express.Router();
-const { registerUser, loginUser, getMe } = require('../controllers/userController');
-const { protect } = require('../middleware/authMiddleware');
 
-// Public route for user registration
-router.post('/register', registerUser);
-
-// Public route for user login
+router.post(
+  '/',
+  [
+    check('name', 'Name is required').not().isEmpty(),
+    check('email', 'Please include a valid email').isEmail(),
+    check(
+      'password',
+      'Please enter a password with 6 or more characters'
+    ).isLength({ min: 6 }),
+  ],
+  registerUser
+);
 router.post('/login', loginUser);
-
-// Private route to get current user's data
-// This route is protected by the 'protect' middleware
 router.get('/me', protect, getMe);
 
-module.exports = router;
+export default router;

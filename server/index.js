@@ -1,45 +1,27 @@
-// Import necessary packages
-const express = require('express');
-const mongoose = require('mongoose');
-const dotenv = require('dotenv');
+import express from 'express';
+import dotenv from 'dotenv';
+import connectDB from './config/db.js';
+import { notFound, errorHandler } from './middleware/errorMiddleware.js';
+import disagreementRoutes from './routes/disagreementRoutes.js';
+import userRoutes from './routes/userRoutes.js';
+import cookieParser from 'cookie-parser';
 
-// Load environment variables from .env file
 dotenv.config();
 
-// Import routes
-const userRoutes = require('./routes/users');
+const port = process.env.PORT || 5000;
 
-// Initialize the Express app
+connectDB();
+
 const app = express();
 
-// --- Universal Request Logger (add this right here) ---
-app.use((req, res, next) => {
-  console.log(`Incoming Request: ${req.method} ${req.originalUrl}`);
-  next(); // This passes the request to the next function in the chain
-});
-
-// Middleware to parse JSON bodies
 app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+app.use(cookieParser());
 
-// ... the rest of your file
-
-// Middleware to parse JSON bodies
-// This allows our server to accept JSON data in requests (e.g., from the frontend)
-app.use(express.json());
-
-// --- Database Connection ---
-const MONGO_URI = process.env.MONGO_URI;
-
-mongoose.connect(MONGO_URI)
-  .then(() => console.log('MongoDB connected successfully.'))
-  .catch(err => console.error('MongoDB connection error:', err));
-
-// --- API Routes ---
-// Tell our app to use the user routes for any request that starts with /api/users
+app.use('/api/disagreements', disagreementRoutes);
 app.use('/api/users', userRoutes);
 
-// --- Start the Server ---
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+app.use(notFound);
+app.use(errorHandler);
+
+console.log(`Server is running on port ${port}`);

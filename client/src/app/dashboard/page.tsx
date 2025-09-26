@@ -1,10 +1,9 @@
 // client/src/app/dashboard/page.tsx
-'use client';
+"use client";
 
-import Sidebar from '@/components/Sidebar';
-import ChatWindow from '@/components/ChatWindow';
-import { useEffect, useState } from 'react';
-import ProtectedRoute from '@/components/ProtectedRoute';
+import Sidebar from "@/components/Sidebar";
+import ChatWindow from "@/components/ChatWindow";
+import { useEffect, useState } from "react";
 
 export interface Disagreement {
   _id: string;
@@ -13,31 +12,18 @@ export interface Disagreement {
 
 function DashboardContent() {
   const [disagreements, setDisagreements] = useState<Disagreement[]>([]);
-  const [selectedDisagreement, setSelectedDisagreement] = useState<Disagreement | null>(null);
+  const [selectedDisagreement, setSelectedDisagreement] =
+    useState<Disagreement | null>(null);
 
   const fetchDisagreements = async () => {
-    // --- NEW: Get user info from local storage ---
-    const userInfoString = localStorage.getItem('userInfo');
-    if (!userInfoString) {
-      // This case should be handled by ProtectedRoute, but it's good practice
-      console.error('No user info found');
-      return;
-    }
-    const userInfo = JSON.parse(userInfoString);
-    const token = userInfo.token;
-    // -----------------------------------------
-
     try {
-      // --- NEW: Add the Authorization header to the request ---
-      const response = await fetch('/api/disagreements', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      // ----------------------------------------------------
+      // The browser will automatically send the cookie. No need for headers!
+      const response = await fetch("/api/disagreements");
 
       if (!response.ok) {
-        throw new Error('Failed to fetch disagreements');
+        // If the cookie is invalid or expired, the server will send a 401
+        // and our ProtectedRoute will redirect to login.
+        throw new Error("Failed to fetch disagreements");
       }
       const data = await response.json();
       setDisagreements(data);
@@ -52,8 +38,8 @@ function DashboardContent() {
 
   return (
     <div className="flex h-screen bg-gray-900">
-      <Sidebar 
-        disagreements={disagreements} 
+      <Sidebar
+        disagreements={disagreements}
         onDisagreementCreated={fetchDisagreements}
         selectedDisagreement={selectedDisagreement}
         onSelectDisagreement={setSelectedDisagreement}
@@ -64,9 +50,7 @@ function DashboardContent() {
 }
 
 export default function DashboardPage() {
-  return (
-    <ProtectedRoute>
-      <DashboardContent />
-    </ProtectedRoute>
-  );
+  // The <ProtectedRoute> wrapper is no longer needed.
+  // The middleware.ts file handles protection for this route.
+  return <DashboardContent />;
 }

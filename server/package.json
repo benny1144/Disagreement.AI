@@ -1,14 +1,24 @@
 {
   "name": "server",
   "version": "1.0.0",
-  "description": "",
+  "description": "Express.js backend server for Disagreement AI, handling API, authentication, and data storage.",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "express",
+    "backend",
+    "api",
+    "nodejs",
+    "jwt",
+    "authentication",
+    "disagreement-ai",
+    "server"
+  ],
+  "author": "Disagreement AI Team",
   "license": "ISC",
   "dependencies": {
     "@aws-sdk/client-s3": "^3.893.0",

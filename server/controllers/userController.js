@@ -1,8 +1,8 @@
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcryptjs';
-import asyncHandler from 'express-async-handler';
-import User from '../models/User.js';
-import { validationResult } from 'express-validator';
+import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
+import asyncHandler from "express-async-handler";
+import User from "../models/User.js";
+import { validationResult } from "express-validator";
 
 // @desc    Register a new user
 // @route   POST /api/users
@@ -19,7 +19,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
   if (userExists) {
     res.status(400);
-    throw new Error('User already exists');
+    throw new Error("User already exists");
   }
 
   const salt = await bcrypt.genSalt(10);
@@ -34,10 +34,10 @@ const registerUser = asyncHandler(async (req, res) => {
   if (user) {
     const token = generateToken(user._id);
 
-    res.cookie('token', token, {
+    res.cookie("token", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV !== 'development',
-      sameSite: 'strict',
+      secure: process.env.NODE_ENV !== "development",
+      sameSite: "strict",
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     });
 
@@ -48,7 +48,7 @@ const registerUser = asyncHandler(async (req, res) => {
     });
   } else {
     res.status(400);
-    throw new Error('Invalid user data');
+    throw new Error("Invalid user data");
   }
 });
 
@@ -56,28 +56,44 @@ const registerUser = asyncHandler(async (req, res) => {
 // @route   POST /api/users/login
 // @access  Public
 const loginUser = asyncHandler(async (req, res) => {
+  console.log("1. Entered loginUser function.");
   const { email, password } = req.body;
 
+  console.log(`2. Attempting to find user with email: ${email}`);
   const user = await User.findOne({ email });
+  console.log("3. User.findOne completed.");
 
-  if (user && (await bcrypt.compare(password, user.password))) {
-    const token = generateToken(user._id);
+  if (user) {
+    console.log("4. User found. Comparing password...");
+    const isMatch = await bcrypt.compare(password, user.password);
+    console.log("5. Password comparison completed.");
 
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV !== 'development',
-      sameSite: 'strict',
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-    });
+    if (isMatch) {
+      console.log("6. Passwords match. Generating token...");
+      const token = generateToken(user._id);
+      console.log("7. Token generated.");
 
-    res.json({
-      _id: user.id,
-      name: user.name,
-      email: user.email,
-    });
+      res.cookie("token", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV !== "development",
+        sameSite: "strict",
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      });
+      console.log("8. Cookie set.");
+
+      res.json({
+        _id: user.id,
+        name: user.name,
+        email: user.email,
+      });
+      console.log("9. JSON response sent.");
+    } else {
+      res.status(400);
+      throw new Error("Invalid credentials");
+    }
   } else {
     res.status(400);
-    throw new Error('Invalid credentials');
+    throw new Error("Invalid credentials");
   }
 });
 
@@ -91,7 +107,7 @@ const getMe = asyncHandler(async (req, res) => {
 // Generate JWT
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: '30d',
+    expiresIn: "30d",
   });
 };
 

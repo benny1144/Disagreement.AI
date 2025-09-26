@@ -1,29 +1,26 @@
-const mongoose = require('mongoose');
-const Schema = mongoose.Schema;
+import mongoose from "mongoose";
 
-// This is the blueprint for a single user
-const userSchema = new Schema({
-    // We require a name, which must be a String
+const userSchema = mongoose.Schema(
+  {
     name: {
-        type: String,
-        required: true
+      type: String,
+      required: [true, "Please add a name"],
     },
-    // We require an email, which must be a unique String
     email: {
-        type: String,
-        required: true,
-        unique: true
+      type: String,
+      required: [true, "Please add an email"],
+      unique: true,
     },
-    // We require a password, which must be a String
     password: {
-        type: String,
-        required: true
-    }
-}, {
-    // This automatically adds "createdAt" and "updatedAt" timestamps
-    timestamps: true
-});
+      type: String,
+      required: [true, "Please add a password"],
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
 
-const User = mongoose.model('User', userSchema);
+const User = mongoose.model("User", userSchema);
 
-module.exports = User;
+export default User;

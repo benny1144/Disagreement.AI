@@ -1,31 +1,18 @@
-const express = require('express');
-const router = express.Router();
-const {
-  createDisagreement,
+import express from "express";
+import {
   getDisagreements,
-  getDisagreementById,
-  inviteUserToDisagreement,
-  analyzeDisagreement,
-  generateUploadUrl,
-} = require('../controllers/disagreementController');
-const { protect } = require('../middleware/authMiddleware');
+  setDisagreement,
+  updateDisagreement,
+  deleteDisagreement,
+} from "../controllers/disagreementController.js";
+import { protect } from "../middleware/authMiddleware.js";
 
-// Routes for creating and getting all disagreements
+const router = express.Router();
+
+router.route("/").get(protect, getDisagreements).post(protect, setDisagreement);
 router
-  .route('/')
-  .post(createDisagreement)
-  .get(getDisagreements);
+  .route("/:id")
+  .delete(protect, deleteDisagreement)
+  .put(protect, updateDisagreement);
 
-// Route for getting a specific disagreement by its ID
-router.route('/:id').get(protect, getDisagreementById);
-
-// Route for inviting a user to a specific disagreement
-router.route('/:id/invite').post(protect, inviteUserToDisagreement);
-
-// Route for triggering AI analysis
-router.route('/:id/analyze').post(protect, analyzeDisagreement);
-
-// Route for generating a pre-signed upload URL 
-router.route('/:id/upload').post(protect, generateUploadUrl);
-
-module.exports = router;
+export default router;

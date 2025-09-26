@@ -1,10 +1,10 @@
-import express from 'express';
-import dotenv from 'dotenv';
-import connectDB from './config/db.js';
-import { notFound, errorHandler } from './middleware/errorMiddleware.js';
-import disagreementRoutes from './routes/disagreementRoutes.js';
-import userRoutes from './routes/userRoutes.js';
-import cookieParser from 'cookie-parser';
+import express from "express";
+import dotenv from "dotenv";
+import connectDB from "./config/db.js";
+import { notFound, errorHandler } from "./middleware/errorMiddleware.js";
+import disagreementRoutes from "./routes/disagreementRoutes.js";
+import userRoutes from "./routes/userRoutes.js";
+import cookieParser from "cookie-parser";
 
 dotenv.config();
 
@@ -14,12 +14,19 @@ connectDB();
 
 const app = express();
 
+// ---- NEW DIAGNOSTIC MIDDLEWARE ----
+// This will log every request that hits the server.
+app.use((req, res, next) => {
+  console.log(`--> INCOMING REQUEST: ${req.method} ${req.originalUrl}`);
+  next();
+});
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
-app.use('/api/disagreements', disagreementRoutes);
-app.use('/api/users', userRoutes);
+app.use("/api/disagreements", disagreementRoutes);
+app.use("/api/users", userRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

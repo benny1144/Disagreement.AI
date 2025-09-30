@@ -1,12 +1,10 @@
-import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import asyncHandler from "express-async-handler";
 import User from "../models/User.js";
 import { validationResult } from "express-validator";
+import generateToken from "../utils/generateToken.js";
 
 // @desc    Register a new user
-// @route   POST /api/users
-// @access  Public
 const registerUser = asyncHandler(async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -16,31 +14,26 @@ const registerUser = asyncHandler(async (req, res) => {
   const { name, email, password } = req.body;
 
   const userExists = await User.findOne({ email });
-
   if (userExists) {
     res.status(400);
     throw new Error("User already exists");
   }
 
-  const salt = await bcrypt.genSalt(10);
-  const hashedPassword = await bcrypt.hash(password, salt);
-
+  // Pass plaintext password to User.create, let the model handle hashing.
   const user = await User.create({
     name,
     email,
-    password: hashedPassword,
+    password,
   });
 
   if (user) {
     const token = generateToken(user._id);
-
     res.cookie("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV !== "development",
       sameSite: "strict",
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     });
-
     res.status(201).json({
       _id: user.id,
       name: user.name,
@@ -52,63 +45,91 @@ const registerUser = asyncHandler(async (req, res) => {
   }
 });
 
-// @desc    Authenticate a user
-// @route   POST /api/users/login
-// @access  Public
+// @desc    Auth user & get token
 const loginUser = asyncHandler(async (req, res) => {
-  console.log("1. Entered loginUser function.");
   const { email, password } = req.body;
 
-  console.log(`2. Attempting to find user with email: ${email}`);
   const user = await User.findOne({ email });
-  console.log("3. User.findOne completed.");
+  console.log("User found:", user);
 
   if (user) {
-    console.log("4. User found. Comparing password...");
+    console.log("Plaintext password from request:", password);
+    console.log("Hashed password from DB:", user.password);
     const isMatch = await bcrypt.compare(password, user.password);
-    console.log("5. Password comparison completed.");
+    console.log("Password comparison result (isMatch):", isMatch);
 
     if (isMatch) {
-      console.log("6. Passwords match. Generating token...");
       const token = generateToken(user._id);
-      console.log("7. Token generated.");
-
       res.cookie("token", token, {
         httpOnly: true,
         secure: process.env.NODE_ENV !== "development",
         sameSite: "strict",
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
       });
-      console.log("8. Cookie set.");
-
       res.json({
         _id: user.id,
         name: user.name,
         email: user.email,
       });
-      console.log("9. JSON response sent.");
     } else {
-      res.status(400);
-      throw new Error("Invalid credentials");
+      res.status(401);
+      throw new Error("Invalid email or password");
     }
   } else {
-    res.status(400);
-    throw new Error("Invalid credentials");
+    res.status(401);
+    throw new Error("Invalid email or password");
   }
 });
 
-// @desc    Get user data
-// @route   GET /api/users/me
-// @access  Private
-const getMe = asyncHandler(async (req, res) => {
-  res.status(200).json(req.user);
+// @desc    Logout user / clear cookie
+const logoutUser = asyncHandler(async (req, res) => {
+  res.cookie("token", "", {
+    httpOnly: true,
+    expires: new Date(0),
+  });
+  res.status(200).json({ message: "Logged out successfully" });
 });
 
-// Generate JWT
-const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: "30d",
-  });
-};
+// @desc    Get user profile
+const getUserProfile = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id);
 
-export { registerUser, loginUser, getMe };
+  if (user) {
+    res.status(200).json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+    });
+  } else {
+    res.status(404);
+    throw new Error("User not found");
+  }
+});
+
+// @desc    Update user profile
+const updateUserProfile = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id);
+
+  if (user) {
+    user.name = req.body.name || user.name;
+    user.email = req.body.email || user.email;
+
+    if (req.body.password) {
+      // Pass plaintext password, let the model's pre-save hook handle hashing.
+      user.password = req.body.password;
+    }
+
+    const updatedUser = await user.save();
+
+    res.status(200).json({
+      _id: updatedUser._id,
+      name: updatedUser.name,
+      email: updatedUser.email,
+    });
+  } else {
+    res.status(404);
+    throw new Error("User not found");
+  }
+});
+
+export { loginUser, registerUser, logoutUser, getUserProfile, updateUserProfile };

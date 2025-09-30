@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const disagreementSchema = mongoose.Schema(
+const messageSchema = new mongoose.Schema(
   {
     user: {
       type: mongoose.Schema.Types.ObjectId,
@@ -9,8 +9,33 @@ const disagreementSchema = mongoose.Schema(
     },
     text: {
       type: String,
-      required: [true, "Please add a text value"],
+      required: true,
     },
+  },
+  {
+    timestamps: true,
+  }
+);
+
+const disagreementSchema = new mongoose.Schema(
+  {
+    title: {
+      type: String,
+      required: true,
+    },
+    ai_mode: {
+      type: String,
+      required: true,
+      default: "Fact-Finder",
+    },
+    participants: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        required: true,
+        ref: "User",
+      },
+    ],
+    messages: [messageSchema],
   },
   {
     timestamps: true,

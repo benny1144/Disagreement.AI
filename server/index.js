@@ -1,34 +1,50 @@
-import express from "express";
 import dotenv from "dotenv";
-import connectDB from "./config/db.js";
-import { notFound, errorHandler } from "./middleware/errorMiddleware.js";
-import disagreementRoutes from "./routes/disagreementRoutes.js";
-import userRoutes from "./routes/userRoutes.js";
-import cookieParser from "cookie-parser";
-
 dotenv.config();
 
-const port = process.env.PORT || 5000;
+import path from "path";
+import { fileURLToPath } from "url";
+import express from "express";
+import cookieParser from "cookie-parser";
+import { notFound, errorHandler } from "./middleware/errorMiddleware.js";
+import { connectDB } from "./config/db.js";
+import userRoutes from "./routes/userRoutes.js";
+import disagreementRoutes from "./routes/disagreementRoutes.js";
+
+// ES Module equivalent of __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 connectDB();
 
+const port = process.env.PORT || 5000;
+
 const app = express();
 
-// ---- NEW DIAGNOSTIC MIDDLEWARE ----
-// This will log every request that hits the server.
-app.use((req, res, next) => {
-  console.log(`--> INCOMING REQUEST: ${req.method} ${req.originalUrl}`);
-  next();
-});
-
 app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-app.use("/api/disagreements", disagreementRoutes);
+// Serve API routes
 app.use("/api/users", userRoutes);
+app.use("/api/disagreements", disagreementRoutes);
+
+if (process.env.NODE_ENV === "production") {
+  // Serve Next.js build
+  app.use(express.static(path.join(__dirname, "../client/out")));
+
+  // Catch-all to serve Next.js's index.html for any other route
+  app.get("*", (req, res) =>
+    res.sendFile(path.resolve(__dirname, "../client/out", "index.html"))
+  );
+} else {
+  // Serve marketing site in development
+  app.use(express.static(path.join(__dirname, "../marketing")));
+  app.get("/", (req, res) => {
+    res.sendFile(path.resolve(__dirname, "../marketing", "index.html"));
+  });
+}
 
 app.use(notFound);
 app.use(errorHandler);
 
-console.log(`Server is running on port ${port}`);
+app.listen(port, () => console.log(`Server started on port ${port}`));

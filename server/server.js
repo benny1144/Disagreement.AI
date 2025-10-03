@@ -1,74 +1,61 @@
-// Import necessary packages
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-require('dotenv').config();
+import express from 'express';
+import dotenv from 'dotenv';
+import cors from 'cors';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
+import connectDB from './config/db.js';
 
-// We need to import the built-in http module and the Server class from socket.io
-const http = require('http');
-const { Server } = require('socket.io');
+// Import route files
+import userRoutes from './routes/userRoutes.js';
+import disagreementRoutes from './routes/disagreementRoutes.js';
 
-// Initialize the Express application
+// Load environment variables (default .env), then fallback to services/.env if needed
+dotenv.config();
+dotenv.config({ path: '../services/.env' });
+
+// Connect to database
+connectDB();
+
 const app = express();
-// Create an HTTP server from our Express app
-const server = http.createServer(app);
+const httpServer = createServer(app);
 
-// Initialize Socket.IO and attach it to the HTTP server
-// We configure CORS to allow our frontend to connect
-const io = new Server(server, {
-  cors: {
-    origin: "http://localhost:3000", // This will be our React client's address
-    methods: ["GET", "POST"]
-  }
+const CLIENT_ORIGIN = process.env.CLIENT_URL || 'http://localhost:5173';
+const io = new Server(httpServer, {
+    cors: {
+        origin: CLIENT_ORIGIN,
+        methods: ["GET", "POST"],
+        credentials: true,
+    }
 });
 
-// Middleware Setup
-app.use(cors());
+// Middleware
+app.use(cors({ origin: CLIENT_ORIGIN, credentials: true }));
 app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
 
-// Define the Port
-const PORT = process.env.PORT || 5001;
+// API Routes
+app.use('/api/users', userRoutes);
+app.use('/api/disagreements', disagreementRoutes);
 
-// --- Routes ---
-app.use('/api/users', require('./routes/userRoutes'));
-app.use('/api/disagreements', require('./routes/disagreementRoutes'));
-
-// --- Basic Test Route ---
-app.get('/', (req, res) => {
-  res.send('Disagreement.AI server is running!');
-});
-
-// --- Socket.IO Connection Logic ---
+// Socket.IO connection logic
 io.on('connection', (socket) => {
-  console.log(`User Connected: ${socket.id}`);
+    console.log('A user connected:', socket.id);
 
-  // Listen for a user joining a specific disagreement room
-  socket.on('joinRoom', (disagreementId) => {
-    socket.join(disagreementId);
-    console.log(`User ${socket.id} joined room ${disagreementId}`);
-  });
+    socket.on('join_room', (data) => {
+        socket.join(data.roomId);
+        console.log(`User ${socket.id} joined room ${data.roomId}`);
+    });
 
-  // We will add logic here later to handle sending/receiving messages
+    socket.on('send_message', (data) => {
+        // Broadcast the message to the specific room
+        io.to(data.roomId).emit('receive_message', data);
+    });
 
-  // Handle user disconnection
-  socket.on('disconnect', () => {
-    console.log('User Disconnected', socket.id);
-  });
+    socket.on('disconnect', () => {
+        console.log('User disconnected:', socket.id);
+    });
 });
 
+const PORT = process.env.PORT || 3000;
 
-// --- MongoDB Connection ---
-const MONGO_URI = process.env.MONGO_URI;
-
-mongoose.connect(MONGO_URI)
-  .then(() => {
-    console.log('Successfully connected to MongoDB.');
-    // We now tell the 'server' (with Socket.IO) to listen, not the 'app'
-    server.listen(PORT, () => {
-      console.log(`Server is running on port: ${PORT}`);
-    });
-  })
-  .catch((err) => {
-    console.error('Database connection failed.', err);
-    process.exit(1);
-  });
+httpServer.listen(PORT, () => console.log(`Server running on port ${PORT}`));

@@ -1,0 +1,69 @@
+Design System Name: "Apple-Inspired Trust & Clarity"
+
+Mission Statement: To visually and textually guide users from a state of conflict to a state of resolution. Our tagline is "From Conflict to Clarity."
+
+Core Principles:
+
+De-escalation by Design: The UI must feel calm, clean, and in control to reduce user anxiety.
+
+Trust & Transparency: Components and layouts should be clear, honest, and provide easy access to security and privacy information.
+
+Minimalist Aesthetic: Every element should have a purpose. Avoid clutter.
+
+Generous White Space: Use spacing to guide the eye and improve readability.
+
+Clear Visual Hierarchy: The most important elements should be the most prominent.
+
+Colors:
+
+Primary Blue (Branding, Positive Actions, Links): #5D5FEF
+
+Accent Green (Success States, Notifications): #28A745
+
+Standard Text: #333333
+
+Subtle Borders & Backgrounds: #E2E8F0 (gray.200)
+
+Typography & Icons:
+
+Font Family: Nunito
+
+Icon Library: Heroicons
+
+Layout Principles:
+
+Bento Grids: For dashboards or complex information displays, use a grid layout to organize content into clean, scannable blocks.
+
+Narrative Flow: On marketing pages, arrange sections to tell a story: Hero (What) -> Features (How) -> "Perfect For..." (Who).
+
+Interaction Design:
+
+Micro-interactions: All interactive elements (buttons, links, inputs) must have subtle, responsive feedback on hover and click (e.g., slight scale or color transition).
+
+Motion Design: Use purposeful, non-intrusive animations (e.g., scroll-triggered entrances) to guide the user and explain processes, especially on the marketing site.
+
+Component Patterns & Styling:
+
+Buttons (Chakra UI): rounded="lg". Primary CTAs must use colorScheme="blue".
+
+Buttons (Tailwind CSS): Pill-shaped (rounded-full). Primary CTAs must be high-contrast using the primary blue background.
+
+Cards/Containers: rounded="xl" with a subtle boxShadow="md" to lift them off the page.
+
+Footers: The marketing site footer must be comprehensive (legal, contact, mission). The in-app footer should be minimal but always contain links to Privacy and Terms.
+
+Testimonials: This pattern must include a user's avatar/photo, their quote, and their name/title to maximize social proof.
+
+Brand & UX Rules:
+
+Stylized Brand Name: In "Disagreement.AI," the word "agreement" MUST be styled in Primary Blue.
+
+Linguistic Reinforcement: Positive, resolution-oriented action words ("Agree," "Agreement") MUST be styled in Primary Blue.
+1.  **Choice Words:** The words "Agree" and "Agreement," when used for positive actions, must always be styled in the Primary Blue color (#5D5FEF).
+2.  **Stylized Brand Name:** In the brand name "Disagreement.AI" or "Disagreement," the word "agreement" MUST be styled in Primary Blue (#5D5FEF). The "Dis" prefix and ".AI" suffix MUST be the Standard Text color (#333333).
+
+
+Chat Interface ("iMessage" Pattern):
+
+User's own messages: Right-aligned, blue background, white text.
+Other participants' messages: Left-aligned, gray background, black text.

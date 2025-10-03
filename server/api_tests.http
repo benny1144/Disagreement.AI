@@ -1,0 +1,46 @@
+###
+# @name login
+# User Login - Create a test user in your database first or use one you've made
+POST http://localhost:3000/api/users/login
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "password123"
+}
+
+> {%
+    client.global.set("authToken", response.body.token);
+%}
+
+###
+# @name createDisagreement
+# Create a new Disagreement
+POST http://localhost:3000/api/disagreements
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+  "text": "Initial disagreement about project scope and deliverables."
+}
+
+> {%
+    client.global.set("disagreementId", response.body._id);
+%}
+
+###
+# @name processDisagreement
+# TRIGGER THE AI CREW
+POST http://localhost:3000/api/disagreements/{{disagreementId}}/process
+Authorization: Bearer {{authToken}}
+
+###
+# @name inviteUser
+# Invite a user to a disagreement
+POST http://localhost:3000/api/disagreements/{{disagreementId}}/invite
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+  "email": "friend@example.com"
+}

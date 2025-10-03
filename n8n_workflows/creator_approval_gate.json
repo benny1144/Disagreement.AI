@@ -1,0 +1,145 @@
+{
+  "name": "Creator Approval Gate",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "{{$env.CREATOR_APPROVAL_INITIAL_PATH || 'creator-approval/initial'}}",
+        "responseMode": "onReceived",
+        "responseData": "json",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "Webhook_Initial_Invite_Trigger",
+      "name": "Initial Invite Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [200, 200]
+    },
+    {
+      "parameters": {
+        "functionCode": "const p = items[0].json || {}; const { disputeId, creatorId, inviterName, inviteeEmail } = p; if (!disputeId || !creatorId || !inviterName || !inviteeEmail) { throw new Error('Missing required fields: disputeId, creatorId, inviterName, inviteeEmail'); } const token = '{{$env.APPROVAL_TOKEN_PLACEHOLDER || \"{{approval_token}}\"}}'; const n8nBase = '{{$env.N8N_PUBLIC_URL || \"https://n8n.example.com\"}}'; const approvePath = '{{$env.CREATOR_APPROVAL_CALLBACK_PATH || \"creator-approval/callback\"}}'; const approveUrl = `${n8nBase}/webhook/${approvePath}?disputeId=${encodeURIComponent(disputeId)}&creatorId=${encodeURIComponent(creatorId)}&inviteeEmail=${encodeURIComponent(inviteeEmail)}&status=approved&token=${encodeURIComponent(token)}`; const denyUrl = `${n8nBase}/webhook/${approvePath}?disputeId=${encodeURIComponent(disputeId)}&creatorId=${encodeURIComponent(creatorId)}&inviteeEmail=${encodeURIComponent(inviteeEmail)}&status=denied&token=${encodeURIComponent(token)}`; const emailFrom = '{{$env.EMAIL_FROM || \"no-reply@disagreement.ai\"}}'; const subject = `Approval Needed: Invite for ${inviteeEmail}`; const textBody = `Hello\\n\\nYou are the creator of dispute ${disputeId}. ${inviterName} has invited ${inviteeEmail} to join.\\nPlease choose:\\nApprove: ${approveUrl}\\nDeny: ${denyUrl}`; const htmlBody = `<p>Hello,</p><p>You are the creator of dispute <strong>${disputeId}</strong>. <strong>${inviterName}</strong> has invited <strong>${inviteeEmail}</strong> to join.</p><p>Please choose:</p><p><a href=\"${approveUrl}\" target=\"_blank\" rel=\"noopener\">Approve</a> | <a href=\"${denyUrl}\" target=\"_blank\" rel=\"noopener\">Deny</a></p>`; return [{ json: { disputeId, creatorId, inviterName, inviteeEmail, email: { from: emailFrom, to: '{{$env.CREATOR_EMAIL_PLACEHOLDER || \"{{creator_email}}\"}}', subject, text: textBody, html: htmlBody }, approveUrl, denyUrl, token } }];"
+      },
+      "id": "Function_Prepare_Email",
+      "name": "Prepare Approval Email",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [520, 200]
+    },
+    {
+      "parameters": {
+        "authentication": "none",
+        "url": "{{$env.EMAIL_API_URL || 'https://api.email-service.example.com/send'}}",
+        "method": "POST",
+        "jsonParameters": true,
+        "options": {
+          "redirect": { "redirect": "manual" },
+          "timeout": 10000
+        },
+        "sendHeaders": true,
+        "headerParametersJson": "{\n  \"Authorization\": \"Bearer {{$env.EMAIL_API_KEY || '{{EMAIL_API_KEY}}'}}\",\n  \"Content-Type\": \"application/json\"\n}",
+        "sendBody": true,
+        "bodyParametersJson": "{\n  \"from\": \"{{$json.email.from}}\",\n  \"to\": \"{{$json.email.to}}\",\n  \"subject\": \"{{$json.email.subject}}\",\n  \"text\": \"{{$json.email.text}}\",\n  \"html\": \"{{$json.email.html}}\"\n}"
+      },
+      "id": "HTTP_Send_Email",
+      "name": "Send Approval Email",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [840, 200]
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "{{$env.CREATOR_APPROVAL_CALLBACK_PATH || 'creator-approval/callback'}}",
+        "responseMode": "onReceived",
+        "responseData": "json",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "WaitWebhook_Creator_Response",
+      "name": "Creator Response (Wait For Webhook)",
+      "type": "n8n-nodes-base.waitForWebhook",
+      "typeVersion": 1,
+      "position": [1160, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json['query']['status'] || $json.status}}",
+              "operation": "equals",
+              "value2": "approved"
+            }
+          ]
+        }
+      },
+      "id": "IF_Approved",
+      "name": "Approved?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1480, 200]
+    },
+    {
+      "parameters": {
+        "authentication": "none",
+        "url": "={{$env.BACKEND_API_URL || 'https://api.backend.example.com'}}/disagreements/{{$json.disputeId || $json.query.disputeId}}/invite/decision",
+        "method": "POST",
+        "jsonParameters": true,
+        "sendHeaders": true,
+        "headerParametersJson": "{\n  \"Authorization\": \"Bearer {{$env.BACKEND_API_KEY || '{{BACKEND_API_KEY}}'}}\",\n  \"Content-Type\": \"application/json\"\n}",
+        "sendBody": true,
+        "bodyParametersJson": "{\n  \"disputeId\": \"{{$json.disputeId || $json.query.disputeId}}\",\n  \"creatorId\": \"{{$json.creatorId || $json.query.creatorId}}\",\n  \"inviteeEmail\": \"{{$json.inviteeEmail || $json.query.inviteeEmail}}\",\n  \"status\": \"approved\"\n}"
+      },
+      "id": "HTTP_Notify_Backend_Approved",
+      "name": "Notify Backend (Approved)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1800, 80]
+    },
+    {
+      "parameters": {
+        "authentication": "none",
+        "url": "={{$env.BACKEND_API_URL || 'https://api.backend.example.com'}}/disagreements/{{$json.disputeId || $json.query.disputeId}}/invite/decision",
+        "method": "POST",
+        "jsonParameters": true,
+        "sendHeaders": true,
+        "headerParametersJson": "{\n  \"Authorization\": \"Bearer {{$env.BACKEND_API_KEY || '{{BACKEND_API_KEY}}'}}\",\n  \"Content-Type\": \"application/json\"\n}",
+        "sendBody": true,
+        "bodyParametersJson": "{\n  \"disputeId\": \"{{$json.disputeId || $json.query.disputeId}}\",\n  \"creatorId\": \"{{$json.creatorId || $json.query.creatorId}}\",\n  \"inviteeEmail\": \"{{$json.inviteeEmail || $json.query.inviteeEmail}}\",\n  \"status\": \"denied\"\n}"
+      },
+      "id": "HTTP_Notify_Backend_Denied",
+      "name": "Notify Backend (Denied)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1800, 320]
+    }
+  ],
+  "connections": {
+    "Initial Invite Trigger": {
+      "main": [[{ "node": "Prepare Approval Email", "type": "main", "index": 0 }]]
+    },
+    "Prepare Approval Email": {
+      "main": [[{ "node": "Send Approval Email", "type": "main", "index": 0 }]]
+    },
+    "Send Approval Email": {
+      "main": [[{ "node": "Creator Response (Wait For Webhook)", "type": "main", "index": 0 }]]
+    },
+    "Creator Response (Wait For Webhook)": {
+      "main": [[{ "node": "Approved?", "type": "main", "index": 0 }]]
+    },
+    "Approved?": {
+      "main": [
+        [{ "node": "Notify Backend (Approved)", "type": "main", "index": 0 }],
+        [{ "node": "Notify Backend (Denied)", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "pinData": {},
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "staticData": null,
+  "meta": { "instanceId": "{{$env.N8N_INSTANCE_ID || 'instance-placeholder'}}" }
+}

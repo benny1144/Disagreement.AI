@@ -2,15 +2,26 @@
 /node_modules
 /client/node_modules
 /server/node_modules
+/services/venv
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Production
+/build
+/client/build
+
+# IDE & OS Files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
 
 # Environment Variables
 .env
 .env.*
 !/.env.example
-
-# Production
-/build
-/client/build
 
 # Logs
 npm-debug.log*

@@ -1,31 +1,19 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const {
-  createDisagreement,
-  getDisagreements,
-  getDisagreementById,
-  inviteUserToDisagreement,
-  analyzeDisagreement,
-  generateUploadUrl,
-} = require('../controllers/disagreementController');
-const { protect } = require('../middleware/authMiddleware');
+import {
+    getDisagreements,
+    createDisagreement,
+    getDisagreement,
+    updateDisagreement,
+    deleteDisagreement,
+    processDisagreement,
+    inviteUser
+} from '../controllers/disagreementController.js'; // Added .js
+import { protect } from '../middleware/authMiddleware.js'; // Added .js
 
-// Routes for creating and getting all disagreements
-router
-  .route('/')
-  .post(protect, createDisagreement)
-  .get(protect, getDisagreements);
+router.route('/').get(protect, getDisagreements).post(protect, createDisagreement);
+router.route('/:id/process').post(protect, processDisagreement);
+router.route('/:id/invite').post(protect, inviteUser);
+router.route('/:id').get(protect, getDisagreement).put(protect, updateDisagreement).delete(protect, deleteDisagreement);
 
-// Route for getting a specific disagreement by its ID
-router.route('/:id').get(protect, getDisagreementById);
-
-// Route for inviting a user to a specific disagreement
-router.route('/:id/invite').post(protect, inviteUserToDisagreement);
-
-// Route for triggering AI analysis
-router.route('/:id/analyze').post(protect, analyzeDisagreement);
-
-// Route for generating a pre-signed upload URL 
-router.route('/:id/upload').post(protect, generateUploadUrl);
-
-module.exports = router;
+export default router;

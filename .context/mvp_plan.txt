@@ -1,0 +1,51 @@
+﻿Disagreement.AI MVP: Definitive Strategic Development Plan (v12.0 FINAL)-----
+
+I. Guiding Principles & Vision
+Project Vision: A chat-based resolution platform where a conversational AI facilitates and mediates disputes.
+Guiding Principles: Simplicity, User Trust, Performance, Risk Mitigation, Scalability.
+II. Core Pages & User Experience (MVP)
+Public Pages:
+Homepage: A clean landing page featuring a 90-second animated explainer video, a clear value proposition, and a prominent call-to-action to sign up.
+Application Pages:
+Authentication: Register and Login pages.
+In-App Onboarding: A simple, one-time flow for new users that explains the 3-step resolution process (State Your Case, AI Analyzes, Reach Agreement).
+Dashboard: The user's home base. The layout will be a clean, scannable "Bento Grid" to organize active disagreements, resolved cases, and key actions. It must feature a well-designed empty state if no disagreements exist.
+Chat Page: The core interface. The design must be minimalist and calm, following a "de-escalation by design" principle. It must include a persistent, non-intrusive legal disclaimer: "Please note: The AI does not provide legally binding advice."
+User Account: Profile and Settings pages.
+III. Core MVP Features
+User Authentication: Secure email/password registration and login.
+Invitation System & Creator Approval Gate: A system for adding participants to a disagreement, governed by the following rules:
+If User A (the creator) directly invites one or more users via email, those users are auto-approved.
+If a user tries to join via a general invite link, User A must approve them.
+If User B (a participant) invites User C, User A must approve User C. The UI will state, "User B has nominated User C to join this disagreement."
+Dashboard: View active and resolved disagreements.
+Chat Interface: Real-time, two-party dispute resolution chat.
+AI Roles: Users can select an AI persona (Mediator, Fact-Finder, Judge & Jury).
+AI Resolution Report: AI-generated summary of the dispute.
+IV. Technical Stack
+IDE: IntelliJ IDEA Ultimate
+AI/Automation: CrewAI, n8n
+Frontend: React (Vite), Chakra UI
+Backend: Node.js (Express), MongoDB, Socket.IO, Resend
+Marketing Site: v0.dev, Tailwind CSS
+Infrastructure: Render, Cloudflare Pages
+V. Design System: "Apple-Inspired Trust & Clarity"
+Font: Nunito
+Primary Blue: #5D5FEF
+Accent Green: #28A745
+Text Color: #333333
+VI. Core User Experience Principles
+De-escalation by Design: The entire in-app user interface must feel calm, clean, and in control. Use generous whitespace, a clear visual hierarchy, and a minimalist aesthetic.
+Trust Architecture: Every screen must be engineered to build user trust. Include persistent links to legal/privacy pages, clear language, and strategic social proof. This is our primary design directive. All user-facing components, from the marketing homepage to the in-app chat, MUST adhere to the principles outlined in our 'Homepage Enhancement for Disagreement.AI' document, which serves as the project's official Trust Architecture guide.
+Modern Engagement: Use subtle micro-interactions (e.g., button animations) to make the app feel responsive and polished.
+VII. Specific Component Styling Rules
+Chat Interface ("iMessage" Pattern):
+User's own messages: Right-aligned, Primary Blue background, white text.
+Other participants' messages: Left-aligned, gray background, black text.
+AI messages: Left-aligned, with a distinct AI avatar/icon and a unique, subtle background color (#F3F4FF).
+VIII. Post-Launch Strategy (Formalized)
+User Feedback & Iteration Framework: Immediately following launch, we will implement a structured process for capturing and acting on user feedback. This will be managed via a three-tab Google Sheet:
+Framework: Defines the process for collecting, categorizing, and prioritizing feedback.
+Repository: A master list of all incoming feedback from all channels.
+Roadmap: A prioritized list of features and fixes to be developed, derived from the repository.
+

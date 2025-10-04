@@ -168,7 +168,7 @@ const inviteUser = asyncHandler(async (req, res) => {
         throw new Error('Valid email is required');
     }
 
-    const disagreement = await Disagreement.findById(req.params.id).populate('user', 'name');
+    const disagreement = await Disagreement.findById(req.params.id).populate('user', 'name email');
 
     if (!disagreement) {
         res.status(404);
@@ -258,6 +258,7 @@ const inviteUser = asyncHandler(async (req, res) => {
                 disagreementTitle: disagreement.text,
                 inviterName,
                 inviterId: req.user.id,
+                creatorEmail: disagreement.user?.email || null,
                 messageId: info?.messageId || null,
             },
             { timeout: timeoutMs }

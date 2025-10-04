@@ -172,8 +172,13 @@ function ChatPage() {
                 })
               )}
 
+              {/* Legal disclaimer, persistently visible above input */}
+              <Text fontSize="sm" fontStyle="italic" color="gray.500" mt={2}>
+                Please note: The AI does not provide legally binding advice.
+              </Text>
+
               {/* Message input form */}
-              <Flex as="form" onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }} gap={2} mt={4}>
+              <Flex as="form" onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }} gap={2} mt={2}>
                 <Input
                   placeholder="Type your message..."
                   value={newMessage}

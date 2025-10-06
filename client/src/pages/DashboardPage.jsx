@@ -106,6 +106,9 @@ function DashboardPage() {
                   <Flex direction="column" align="center" justify="center" py={10} color="gray.600">
                     <Text fontSize="4xl" aria-hidden>📭</Text>
                     <Text mt={3} textAlign="center">You have no active disagreements. Create one to get started!</Text>
+                    <Button colorScheme="blue" size="lg" mt={6} onClick={onOpen}>
+                      Create New Disagreement
+                    </Button>
                   </Flex>
                 ) : (
                   <Box maxH={{ base: 'unset', md: '320px' }} overflowY="auto" pr={1}>

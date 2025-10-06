@@ -1,69 +1,67 @@
-Design System Name: "Apple-Inspired Trust & Clarity"
+# Design System & Architectural Blueprint
+- **ID:** `design-system.md`
+- **Version:** 2.0 (Merged)
+- **Date:** October 5, 2025
+- **Author:** Gemini, Project Architect
 
-Mission Statement: To visually and textually guide users from a state of conflict to a state of resolution. Our tagline is "From Conflict to Clarity."
+## 1.0 Design Philosophy & Mission
+- **System Name:** "Apple-Inspired Trust & Clarity"
+- **Mission:** To visually and textually guide users from a state of conflict to a state of resolution. Our tagline is "From Conflict to Clarity."
+- **Core Principles:**
+  - **De-escalation by Design:** The UI must feel calm, clean, and in control to reduce user anxiety.
+  - **Trust & Transparency:** Components and layouts should be clear, honest, and provide easy access to security and privacy information.
+  - **Minimalist Aesthetic:** Every element must have a purpose. Avoid clutter and use generous white space to guide the eye.
 
-Core Principles:
+## 2.0 Global Design Rules
 
-De-escalation by Design: The UI must feel calm, clean, and in control to reduce user anxiety.
+### 2.1 Color Palette
+- **Primary Blue:** `#5D5FEF` (Branding, Positive Actions, Links)
+- **Accent Green:** `#28A745` (Success States)
+- **Standard Text:** `#333333`
+- **Subtle Borders / Backgrounds:** `#E2E8F0` (Tailwind `gray-200`)
+- **White:** `#FFFFFF`
 
-Trust & Transparency: Components and layouts should be clear, honest, and provide easy access to security and privacy information.
+### 2.2 Typography
+- **Font Family:** Nunito
+- **Icon Library:** Heroicons
+- **Headlines (h1, h2, h3):** `font-bold`, `tracking-tight`
+  - `h1`: `text-4xl` to `text-6xl`
+  - `h2`: `text-3xl` to `text-4xl`
+- **Body Text (p):** `text-lg`, `leading-8`
 
-Minimalist Aesthetic: Every element should have a purpose. Avoid clutter.
+### 2.3 Brand & UX Rules
+- **Stylized Brand Name:** In the brand name "Disagreement.AI," the word "agreement" **MUST** be styled in Primary Blue. The "Dis" prefix and ".AI" suffix **MUST** be the Standard Text color.
+- **Linguistic Reinforcement:** The words "Agree" and "Agreement," when used as positive action words (like on buttons or links), **MUST** be styled in Primary Blue.
 
-Generous White Space: Use spacing to guide the eye and improve readability.
+## 3.0 Global Component Styles
 
-Clear Visual Hierarchy: The most important elements should be the most prominent.
+### 3.1 Buttons
+- **Marketing Site (Tailwind CSS):** Pill-shaped (`rounded-full`). Primary CTAs must use the Primary Blue background with high-contrast white text.
+- **In-App (Chakra UI):** `rounded="lg"`. Primary CTAs must use `colorScheme="blue"`.
 
-Colors:
+### 3.2 Cards / Containers
+- **Style:** `rounded="xl"` with a subtle box shadow: `boxShadow="md"`.
 
-Primary Blue (Branding, Positive Actions, Links): #5D5FEF
+### 3.3 Chat Interface ("iMessage" Pattern)
+- **User's Messages:** Right-aligned, Primary Blue background, white text.
+- **Other Participant's Messages:** Left-aligned, gray background (`#E2E8F0`), black text.
+- **AI Mediator's Messages:** Left-aligned, distinct avatar, unique subtle background (`#F3F4FF`).
 
-Accent Green (Success States, Notifications): #28A745
+## 4.0 Page-Specific Blueprints
 
-Standard Text: #333333
+### 4.1 Homepage (`index.html`) Blueprint
+The homepage will be constructed using the following components in this precise order:
+1.  **Global Navbar**
+2.  **Hero Section**
+3.  **Explainer Video Section**
+4.  **"Perfect For" (Use Cases) Section**
+5.  **How It Works Section**
+6.  **Features Section**
+7.  **Final CTA Section**
+8.  **Global Footer**
 
-Subtle Borders & Backgrounds: #E2E8F0 (gray.200)
-
-Typography & Icons:
-
-Font Family: Nunito
-
-Icon Library: Heroicons
-
-Layout Principles:
-
-Bento Grids: For dashboards or complex information displays, use a grid layout to organize content into clean, scannable blocks.
-
-Narrative Flow: On marketing pages, arrange sections to tell a story: Hero (What) -> Features (How) -> "Perfect For..." (Who).
-
-Interaction Design:
-
-Micro-interactions: All interactive elements (buttons, links, inputs) must have subtle, responsive feedback on hover and click (e.g., slight scale or color transition).
-
-Motion Design: Use purposeful, non-intrusive animations (e.g., scroll-triggered entrances) to guide the user and explain processes, especially on the marketing site.
-
-Component Patterns & Styling:
-
-Buttons (Chakra UI): rounded="lg". Primary CTAs must use colorScheme="blue".
-
-Buttons (Tailwind CSS): Pill-shaped (rounded-full). Primary CTAs must be high-contrast using the primary blue background.
-
-Cards/Containers: rounded="xl" with a subtle boxShadow="md" to lift them off the page.
-
-Footers: The marketing site footer must be comprehensive (legal, contact, mission). The in-app footer should be minimal but always contain links to Privacy and Terms.
-
-Testimonials: This pattern must include a user's avatar/photo, their quote, and their name/title to maximize social proof.
-
-Brand & UX Rules:
-
-Stylized Brand Name: In "Disagreement.AI," the word "agreement" MUST be styled in Primary Blue.
-
-Linguistic Reinforcement: Positive, resolution-oriented action words ("Agree," "Agreement") MUST be styled in Primary Blue.
-1.  **Choice Words:** The words "Agree" and "Agreement," when used for positive actions, must always be styled in the Primary Blue color (#5D5FEF).
-2.  **Stylized Brand Name:** In the brand name "Disagreement.AI" or "Disagreement," the word "agreement" MUST be styled in Primary Blue (#5D5FEF). The "Dis" prefix and ".AI" suffix MUST be the Standard Text color (#333333).
-
-
-Chat Interface ("iMessage" Pattern):
-
-User's own messages: Right-aligned, blue background, white text.
-Other participants' messages: Left-aligned, gray background, black text.
+### 4.2 Standard Content Pages (Privacy, Terms, FAQ)
+These pages will use a simpler, document-style layout:
+1.  **Global Navbar**
+2.  **Page Header & Content Body**
+3.  **Global Footer**

@@ -1,76 +1,52 @@
-﻿Disagreement.AI MVP: Definitive Strategic Development Plan (v12.0 FINAL)-----
-
+﻿Disagreement.AI MVP: Definitive Strategic Development Plan (v14.0 FINAL)
 I. Guiding Principles & Vision
 Project Vision: A chat-based resolution platform where a conversational AI facilitates and mediates disputes.
 Guiding Principles: Simplicity, User Trust, Performance, Risk Mitigation, Scalability.
-
 II. Core Pages & User Experience (MVP)
 Public Pages:
 Homepage: A clean landing page featuring a 90-second animated explainer video, a clear value proposition, and a prominent call-to-action to sign up.
+Privacy Policy
+Terms & Conditions
+Contact Us
+FAQ
 Application Pages:
 Authentication: Register and Login pages.
 In-App Onboarding: A simple, one-time flow for new users that explains the 3-step resolution process (State Your Case, AI Analyzes, Reach Agreement).
-Dashboard: The user's home base. The layout will be a clean, scannable "Bento Grid" to organize active disagreements, resolved cases, and key actions.
-It must feature a well-designed empty state if no disagreements exist.
-Chat Page: The core interface. The design must be minimalist and calm, following a "de-escalation by design" principle.
-It must include a persistent, non-intrusive legal disclaimer: "Please note: The AI does not provide legally binding advice."
+Dashboard: The user's home base. The layout will be a clean, scannable "Bento Grid" to organize active disagreements, resolved cases, and key actions. It must feature a well-designed empty state if no disagreements exist.
+Chat Page: The core interface. The design must be minimalist and calm, following a "de-escalation by design" principle. It must include a persistent, non-intrusive legal disclaimer: "Please note: The AI does not provide legally binding advice."
 User Account: Profile and Settings pages.
-
 III. Core MVP Features
 User Authentication: Secure email/password registration and login.
-Invitation System & Creator Approval Gate: A system for adding participants to a disagreement, governed by the following rules:
-If User A (the creator) directly invites one or more users via email, those users are auto-approved.
-If a user tries to join via a general invite link, User A must approve them.
-If User B (a participant) invites User C, User A must approve User C. The UI will state, "User B has nominated User C to join this disagreement."
-Dashboard: View active and resolved disagreements.
-Chat Interface: Real-time, two-party dispute resolution chat.
-AI Roles: Users can select an AI persona (Mediator, Fact-Finder, Judge & Jury).
-AI Resolution Report: AI-generated summary of the dispute.
-
-IV. Technical Stack
-IDE: IntelliJ IDEA Ultimate
-AI/Automation: CrewAI, n8n
-Frontend: React (Vite), Chakra UI
-Backend: Node.js (Express), MongoDB, Socket.IO, Resend
-Marketing Site: v0.dev, Tailwind CSS
-Infrastructure: Render, Cloudflare Pages
-
-V. Design System: "Apple-Inspired Trust & Clarity"
-Font: Nunito
-Primary Blue: #5D5FEF
-Accent Green: #28A745
-Text Color: #333333
-
-VI. Core User Experience Principles
-De-escalation by Design: The entire in-app user interface must feel calm, clean, and in control.
-Use generous whitespace, a clear visual hierarchy, and a minimalist aesthetic.
-Trust Architecture: Every screen must be engineered to build user trust.
-Include persistent links to legal/privacy pages, clear language, and strategic social proof. This is our primary design directive.
-All user-facing components, from the marketing homepage to the in-app chat, MUST adhere to the principles outlined in our 'Homepage Enhancement for Disagreement.AI' document, which serves as the project's official Trust Architecture guide.
-Modern Engagement: Use subtle micro-interactions (e.g., button animations) to make the app feel responsive and polished.
-
-VI-A. Official Design & Implementation Workflow
-To ensure maximum velocity and a seamless transition from concept to code, this project will adhere to a strict "Visual Reference & Agent Workflow."
-This developer-led process prioritizes in-IDE iteration over traditional design handoffs.
-Phase 1: Rapid Visual Ideation
-Structure (Relume): The layout and information architecture for any new page or component will be generated using Relume's AI wireframing tool.
-Aesthetics (Uizard): The resulting wireframe will be imported into Uizard to apply our brand's visual style, generating a static mockup.
-Deliverable: The final output of this phase is a single PNG image that serves as the visual source of truth for development.
-Phase 2: AI-Powered Implementation (In-IDE)
-All frontend development will be executed within the IDE, guided by the JetBrains AI Implementer.
-The AI will be prompted to build the React component by referencing two sources: the feature's spec.md for functionality and the PNG mockup for all layout, styling, and visual structure.
-Phase 3: Logic and Oversight
-The developer's primary focus will be on reviewing the AI-generated UI code, implementing the necessary business logic, and ensuring all accessibility and performance standards are met.
-
-VII. Specific Component Styling Rules
+Invitation System & Creator Approval Gate: A system for adding participants to a disagreement that requires the original creator's approval before they can join.
+Two-Party Chat: A real-time chat interface for two participants and the AI mediator.
+AI Mediator Agent (CrewAI): The core conversational AI that guides the resolution process.
+Final Agreement & Case Closure: A feature that allows users to formally agree on a resolution, which then closes the case and archives the chat.
+Email Notifications (n8n): Automated email workflows for all critical user actions (registration, invitations, approvals, etc.).
+IV. Technology Stack (Confirmed)
+Frontend: React / Next.js
+Backend: Python (FastAPI)
+Database: PostgreSQL
+Deployment: Render
+AI Agent Framework: CrewAI
+Workflow Automation: n8n
+V. Data & Privacy (Mandatory)
+Data Deletion: All sensitive dispute data is permanently deleted from the database 120 days after a case is resolved.
+AI Training: The MVP AI model will be trained exclusively on synthetic data. No user data will be used for training to ensure maximum privacy and trust.
+VI. Official Brand Identity
+Logo: The official logo is the text "Disagreement.AI" in the Inter font (Extra Bold). In any instance of the word Disagreement, the word agreement must be Primary Blue, while Dis and .AI must be the standard text color.
+Primary Color: #2667FF
+VII. Official Design & Implementation Workflow This project will follow a strict, developer-led "Visual Reference & Agent Workflow".
+Phase 1 (Ideation): Layouts are generated with Relume, and static mockups are created in Uizard. The deliverable is a single PNG image.
+Phase 2 (AI-Powered Implementation): The JetBrains AI Implementer will build the React component by referencing the feature's spec.md and the PNG mockup.
+Phase 3 (Logic and Oversight): The developer will review the AI-generated UI code and implement the necessary business logic.
+Architect's Note: This workflow was adopted after extensive research into modern AI-assisted development pipelines. It is designed to maximize development speed while maintaining high-quality, developer-led oversight. The full research document (AI Web Design To IDE Workflow) is archived for historical context.
+VIII. Specific Component Styling Rules
 Chat Interface ("iMessage" Pattern):
 User's own messages: Right-aligned, Primary Blue background, white text.
 Other participants' messages: Left-aligned, gray background, black text.
 AI messages: Left-aligned, with a distinct AI avatar/icon and a unique, subtle background color (#F3F4FF).
-
-VIII. Post-Launch Strategy (Formalized)
-User Feedback & Iteration Framework: Immediately following launch, we will implement a structured process for capturing and acting on user feedback.
-This will be managed via a three-tab Google Sheet:
+IX. Post-Launch Strategy (Formalized)
+User Feedback & Iteration Framework: Immediately following launch, we will implement a structured process for capturing and acting on user feedback via a three-tab Google Sheet:
 Framework: Defines the process for collecting, categorizing, and prioritizing feedback.
 Repository: A master list of all incoming feedback from all channels.
 Roadmap: A prioritized list of features and fixes to be developed, derived from the repository.

@@ -1,0 +1,21 @@
+# Web server framework and server
+fastapi
+uvicorn[standard]
+
+# Database connection and ORM
+sqlalchemy
+psycopg2-binary
+
+# Security for passwords and authentication tokens
+passlib[bcrypt]
+python-jose[cryptography]
+
+# Core package for our AI agents
+crewai
+crewai_tools
+
+# LLM provider for CrewAI
+openai
+
+# Environment variable management
+python-dotenv

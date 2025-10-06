@@ -7,6 +7,8 @@ load_dotenv()
 
 # --- AGENT DEFINITIONS ---
 
+# --- Core Dispute Resolution Agents ---
+
 # Agent 1: The Mediator
 mediator = Agent(
     role='Senior Dispute Mediator',
@@ -43,11 +45,40 @@ judge_jury = Agent(
     allow_delegation=False,
 )
 
-# --- TASK DEFINITIONS ---
+# --- (BETA) Specialized Agents ---
+
+# Agent 4: The Debate Facilitator (BETA)
+debate_facilitator = Agent(
+    role='Structured Debate Facilitator',
+    goal='Ensure a fair, structured, and productive debate by enforcing rules and keeping participants on topic.',
+    backstory=(
+        "(BETA) You are an AI facilitator modeled on the principles of parliamentary debate. "
+        "You ensure that each side has an equal opportunity to present their arguments, rebut points, and make a closing statement, "
+        "all while maintaining a respectful and logical flow of conversation."
+    ),
+    verbose=True,
+    allow_delegation=False,
+)
+
+# Agent 5: The Team Builder (BETA)
+team_builder = Agent(
+    role='Team Cohesion Analyst',
+    goal='Identify and address the root causes of internal team conflict to improve collaboration and build a stronger, more unified team.',
+    backstory=(
+        "(BETA) You are an AI organizational psychologist specializing in team dynamics. "
+        "You analyze conversations to find friction points, communication gaps, and conflicting goals, then propose "
+        "actionable strategies and communication frameworks to resolve the underlying issues and strengthen team bonds."
+    ),
+    verbose=True,
+    allow_delegation=False,
+)
+
+
+# --- TASK & CREW DEFINITIONS ---
 
 def create_disagreement_crew(dispute_text):
     """
-    This function creates and configures the CrewAI crew to process a given dispute.
+    Creates and configures the standard CrewAI crew to process a given dispute.
     """
     # Task 1: Find the Facts
     fact_finding_task = Task(
@@ -71,14 +102,28 @@ def create_disagreement_crew(dispute_text):
     )
 
     # Create the Crew
-    disagreement_crew = Crew(
+    return Crew(
         agents=[mediator, fact_finder, judge_jury],
         tasks=[fact_finding_task, mediation_task, judgment_task],
         process=Process.sequential,
-        verbose=True # Set to True to see agent's step-by-step execution
+        verbose=True
     )
 
-    return disagreement_crew
+# --- (BETA) Placeholder function for future crews ---
+# Note: The tasks for these crews would need to be defined.
+def create_specialized_crew(dispute_text, mode="debate"):
+    """
+    (BETA) This function would create specialized crews based on the selected mode.
+    """
+    if mode == "debate":
+        # Define tasks for a debate...
+        # debate_task_1 = Task(...)
+        return Crew(agents=[debate_facilitator], tasks=[]) # Placeholder tasks
+    elif mode == "team_building":
+        # Define tasks for team building...
+        # team_task_1 = Task(...)
+        return Crew(agents=[team_builder], tasks=[]) # Placeholder tasks
+
 
 # --- MAIN EXECUTION BLOCK ---
 
@@ -86,7 +131,6 @@ if __name__ == "__main__":
     print("## Welcome to the Disagreement.AI Crew")
     print('-----------------------------------------')
 
-    # This is the same dispute text from our test
     dispute_text = """
     The client, a small bakery named "Sweet Dreams," claims they are not obligated to pay the final 50% invoice to the freelance web developer.
     The developer delivered the final website last week, but the client states that the e-commerce functionality does not work as expected.

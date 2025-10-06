@@ -12,10 +12,11 @@
     "clean:vite": "rimraf node_modules/.vite .vite"
   },
   "dependencies": {
-    "@chakra-ui/icons": "^3.3.0",
+    "@chakra-ui/icons": "^2.1.1",
     "@chakra-ui/react": "^3.27.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
+    "@vercel/analytics": "^1.5.0",
     "axios": "^1.12.2",
     "framer-motion": "^12.23.22",
     "react": "^19.1.1",
@@ -25,18 +26,14 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.35.0",
-    "@tailwindcss/postcss": "^4.1.13",
     "@types/react": "^19.1.13",
     "@types/react-dom": "^19.1.9",
     "@vitejs/plugin-react": "^5.0.2",
-    "autoprefixer": "^10.4.21",
     "eslint": "^9.35.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^16.4.0",
-    "postcss": "^8.5.6",
     "rimraf": "^5.0.9",
-    "tailwindcss": "^4.1.13",
     "vite": "^7.1.6"
   }
 }

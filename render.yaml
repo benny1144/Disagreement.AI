@@ -1,4 +1,4 @@
-# render.yaml - Disagreement.AI Infrastructure Blueprint (v3)
+# render.yaml - Disagreement.AI Infrastructure Blueprint (v4)
 services:
   # Service 1: The Node.js/Express Backend API
   - name: disagreement-ai-api
@@ -13,11 +13,10 @@ services:
 
   # Service 2: The Next.js Frontend Client
   - name: disagreement-ai-client
-    type: static
+    type: static_site # Corrected from "static"
     runtime: node
     rootDir: ./client
     buildCommand: "npm install && npm run build"
-    # This is the directory Next.js builds static files into
     staticPublishPath: ./out
     envVars:
       # This automatically sets the API URL for the frontend

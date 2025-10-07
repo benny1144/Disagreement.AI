@@ -1,6 +1,6 @@
-# render.yaml - Disagreement.AI Infrastructure Blueprint (v4)
+# render.yaml - Disagreement.AI Infrastructure Blueprint (Final)
 services:
-  # Service 1: The Node.js/Express Backend API
+  # Service: The Node.js/Express Backend API
   - name: disagreement-ai-api
     type: web
     runtime: node
@@ -10,19 +10,3 @@ services:
     envVars:
       - key: NODE_VERSION
         value: 18
-
-  # Service 2: The Next.js Frontend Client
-  - name: disagreement-ai-client
-    type: static_site # Corrected from "static"
-    runtime: node
-    rootDir: ./client
-    buildCommand: "npm install && npm run build"
-    staticPublishPath: ./out
-    envVars:
-      # This automatically sets the API URL for the frontend
-      # to point to our live backend service.
-      - key: NEXT_PUBLIC_API_URL
-        fromService:
-          type: web
-          name: disagreement-ai-api
-          property: url

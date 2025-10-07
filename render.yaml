@@ -1,32 +1,16 @@
-# render.yaml - Disagreement.AI Infrastructure Blueprint
+# render.yaml - Disagreement.AI Infrastructure Blueprint (v2)
 services:
-  # Service 1: The PostgreSQL Database
-  # This defines the database we created in Phase 1
-  - name: disagreementai-db
-    type: psql
-    # Note: The database name and user are for reference.
-    # Render will use the settings from the database you already created.
-    databaseName: disagreementai
-    user: dai_user
-
-  # Service 2: The FastAPI Backend API
-  - name: disagreementai-api
+  # Service: The FastAPI Backend API
+  - name: disagreement-ai-api
     type: web
     runtime: python
-    # This tells Render where your backend code is located.
-    # We will assume it's in a /server directory.
+    # This should be the path to your server code from the project root
     rootDir: ./server
     buildCommand: "pip install -r requirements.txt"
     startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
     envVars:
-      # This securely gets the database URL from our database service above.
-      - key: DATABASE_URL
-        fromService:
-          type: psql
-          name: disagreementai-db
-          property: internalConnectionString
-      # --- IMPORTANT ---
-      # Add the rest of your secrets in the Render dashboard, NOT here.
-      # For example: SECRET_KEY, OPENAI_API_KEY, etc.
       - key: PYTHON_VERSION
         value: 3.11.4
+      # Note: We will add all other environment variables,
+      # including the Database URL and other secrets,
+      # directly in the Render dashboard for security.

@@ -10,4 +10,9 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  build: {
+    // Emit the production build to the repo root `out/` to match Render's publish directory setting
+    outDir: '../out',
+    emptyOutDir: true,
+  },
 })

@@ -1,16 +1,29 @@
-# render.yaml - Disagreement.AI Infrastructure Blueprint (v2)
+# render.yaml - Disagreement.AI Infrastructure Blueprint (v3)
 services:
-  # Service: The FastAPI Backend API
+  # Service 1: The Node.js/Express Backend API
   - name: disagreement-ai-api
     type: web
-    runtime: python
-    # This should be the path to your server code from the project root
+    runtime: node
     rootDir: ./server
-    buildCommand: "pip install -r requirements.txt"
-    startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    buildCommand: "npm install"
+    startCommand: "node server.js"
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.11.4
-      # Note: We will add all other environment variables,
-      # including the Database URL and other secrets,
-      # directly in the Render dashboard for security.
+      - key: NODE_VERSION
+        value: 18
+
+  # Service 2: The Next.js Frontend Client
+  - name: disagreement-ai-client
+    type: static
+    runtime: node
+    rootDir: ./client
+    buildCommand: "npm install && npm run build"
+    # This is the directory Next.js builds static files into
+    staticPublishPath: ./out
+    envVars:
+      # This automatically sets the API URL for the frontend
+      # to point to our live backend service.
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          type: web
+          name: disagreement-ai-api
+          property: url

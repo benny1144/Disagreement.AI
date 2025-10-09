@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import authService from '../features/auth/authService.js'
 
 export default function LoginPage(): JSX.Element {
@@ -18,9 +18,6 @@ export default function LoginPage(): JSX.Element {
     try {
       const user = await authService.login(formData)
       if (user) {
-        if (typeof window !== 'undefined') {
-          window.alert('Login Successful: Welcome back!')
-        }
         navigate('/dashboard')
       }
     } catch (error: any) {
@@ -35,14 +32,13 @@ export default function LoginPage(): JSX.Element {
   }
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center px-4 font-sans">
-      <form onSubmit={onSubmit} className="w-full max-w-md border border-slate-200 rounded-xl shadow-sm p-8">
-        <h1 className="text-2xl font-bold text-slate-800">Log In</h1>
-        <p className="text-lg text-slate-600 mt-1">Welcome back. Please enter your details.</p>
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
+      <form onSubmit={onSubmit} className="w-full max-w-md bg-white rounded-lg shadow-md p-8">
+        <h1 className="text-3xl font-bold text-slate-800">Log In to Your Account</h1>
 
-        <div className="mt-6 space-y-4">
+        <div className="mt-8 space-y-5">
           <label className="block">
-            <span className="block text-slate-700 font-semibold">Email address</span>
+            <span className="block text-slate-600 font-medium">Email address</span>
             <input
               type="email"
               name="email"
@@ -50,12 +46,12 @@ export default function LoginPage(): JSX.Element {
               onChange={onChange}
               required
               placeholder="you@example.com"
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-0"
             />
           </label>
 
           <label className="block">
-            <span className="block text-slate-700 font-semibold">Password</span>
+            <span className="block text-slate-600 font-medium">Password</span>
             <input
               type="password"
               name="password"
@@ -63,17 +59,22 @@ export default function LoginPage(): JSX.Element {
               onChange={onChange}
               required
               placeholder="••••••••"
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-0"
             />
           </label>
         </div>
 
         <button
           type="submit"
-          className="mt-6 w-full bg-blue-600 text-white font-semibold rounded-md shadow-sm hover:bg-blue-500 transition-colors py-2 text-lg"
+          className="mt-6 w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-md shadow-sm hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
         >
           Log In
         </button>
+
+        <p className="mt-4 text-center text-sm text-slate-600">
+          Don't have an account?{' '}
+          <Link to="/register" className="text-blue-600 hover:underline">Sign Up</Link>
+        </p>
       </form>
     </div>
   )

@@ -4,10 +4,10 @@ import { Component, lazy, Suspense } from 'react';
 
 // --- (Step 1: Import the new HomePage component) ---
 const HomePage = lazy(() => import('./pages/HomePage'));
-const LoginPage = lazy(() => import('./pages/LoginPage'));
-const RegisterPage = lazy(() => import('./pages/RegisterPage'));
-const DashboardPage = lazy(() => import('./pages/DashboardPage'));
-const ChatPage = lazy(() => import('./pages/ChatPage'));
+const LoginPage = lazy(() => import('./pages/LoginPage.tsx'));
+const SignUpPage = lazy(() => import('./pages/SignUpPage.tsx'));
+const DashboardPage = lazy(() => import('./pages/DashboardPage.tsx'));
+const ChatPage = lazy(() => import('./pages/ChatPage.tsx'));
 
 class ErrorBoundary extends Component {
     // ... (No changes needed in the ErrorBoundary component)
@@ -59,7 +59,7 @@ function App() {
                             <Route path='/' element={<HomePage />} />
 
                             <Route path='/login' element={<LoginPage />} />
-                            <Route path='/register' element={<RegisterPage />} />
+                            <Route path='/register' element={<SignUpPage />} />
                             <Route path='/dashboard' element={<DashboardPage />} />
                             <Route path='/disagreement/:id' element={<ChatPage />} />
                         </Routes>

@@ -1,0 +1,20 @@
+# Specification: PostCSS Package & Configuration Fix
+- **ID:** `spec.md.postcss_package_fix`
+- **Version:** 1.0
+- **Date:** October 10, 2025
+- **Author:** Gemini, Project Architect
+
+## 1.0 Document Purpose
+This document specifies the final required change to the project's styling pipeline. It addresses a build failure caused by a version update in the core Tailwind CSS library.
+
+## 2.0 Problem Analysis
+- **Symptom:** The build fails with a PostCSS error.
+- **Root Cause:** The installed version of Tailwind CSS requires its PostCSS plugin to be installed as a separate package (`@tailwindcss/postcss`). The current `postcss.config.js` is attempting to use the old, direct `tailwindcss` plugin, which no longer exists in that form.
+
+## 3.0 Technical Requirements
+1.  **Install New Dependency:** The `@tailwindcss/postcss` package must be added to the project's development dependencies.
+2.  **Update Configuration:** The `postcss.config.js` file must be updated to reference this new package.
+
+## 4.0 Verification Criteria
+- After this change is committed and pushed, the deployment on Render must build and deploy successfully.
+- The application's styling must be fully functional on the live site.

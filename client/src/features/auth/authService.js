@@ -1,11 +1,23 @@
 import axios from 'axios';
 
-// Determine API base URL dynamically to work in both local dev and production
-const envApi = typeof import.meta !== 'undefined' ? import.meta.env?.VITE_API_URL : undefined;
-// Prefer VITE_API_URL if provided; otherwise, if the API is served from same origin under /api, use relative path
-const API_BASE = envApi && String(envApi).trim() !== '' ? envApi.replace(/\/$/, '') : '';
+// Resolve API base URL robustly across environments (Vite/Render/legacy NEXT_* vars)
+function resolveApiBase() {
+  // 1) Vite envs
+  const vite = (typeof import.meta !== 'undefined' && import.meta.env) ? import.meta.env : {};
+  let base = vite.VITE_API_URL || vite.NEXT_PUBLIC_API_URL || '';
 
-// Build full users endpoint base
+  // 2) Window-injected env objects (if any)
+  if (!base && typeof globalThis !== 'undefined') {
+    const w = /** @type {any} */ (globalThis.window || {});
+    base = w?.ENV?.VITE_API_URL || w?.ENV?.NEXT_PUBLIC_API_URL || '';
+  }
+
+  // 3) Normalize
+  base = (base || '').toString().trim().replace(/\/$/, '');
+  return base;
+}
+
+const API_BASE = resolveApiBase();
 const API_URL = API_BASE ? `${API_BASE}/api/users/` : '/api/users/';
 
 // Register user

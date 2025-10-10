@@ -1,7 +1,8 @@
+/// <reference types="node" />
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
-import { createServer } from 'http';
+import { createServer } from 'node:http';
 import { Server } from 'socket.io';
 import connectDB from './config/db.js';
 
@@ -19,7 +20,8 @@ connectDB();
 const app = express();
 const httpServer = createServer(app);
 
-const CLIENT_ORIGIN = process.env.CLIENT_URL || 'http://localhost:5173';
+// Allow dynamic origin to reduce CORS-related login failures (can be tightened via CLIENT_URL env)
+const CLIENT_ORIGIN = process.env.CLIENT_URL || true; // true reflects request origin
 const io = new Server(httpServer, {
     cors: {
         origin: CLIENT_ORIGIN,

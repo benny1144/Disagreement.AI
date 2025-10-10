@@ -19,23 +19,39 @@ function resolveApiBase() {
 
 const API_BASE = resolveApiBase();
 const API_URL = API_BASE ? `${API_BASE}/api/users/` : '/api/users/';
+// Diagnostic: show where auth requests will go
+try { console.log(`[authService] API base: ${API_BASE || '(relative origin)'}; URL prefix: ${API_URL}`); } catch (_) {}
 
 // Register user
 export const register = async (userData) => {
-  const response = await axios.post(`${API_URL}register`, userData, { withCredentials: false });
-  if (response?.data) {
-    localStorage.setItem('user', JSON.stringify(response.data));
+  const url = `${API_URL}register`;
+  try {
+    try { console.log('[authService] POST', url, { email: userData?.email }); } catch(_){}
+    const response = await axios.post(url, userData, { withCredentials: false });
+    if (response?.data) {
+      localStorage.setItem('user', JSON.stringify(response.data));
+    }
+    return response.data;
+  } catch (err) {
+    try { console.error('[authService] register failed', err?.response?.status, err?.response?.data || err?.message); } catch(_){}
+    throw err;
   }
-  return response.data;
 };
 
 // Login user
 export const login = async (userData) => {
-  const response = await axios.post(`${API_URL}login`, userData, { withCredentials: false });
-  if (response?.data) {
-    localStorage.setItem('user', JSON.stringify(response.data));
+  const url = `${API_URL}login`;
+  try {
+    try { console.log('[authService] POST', url, { email: userData?.email }); } catch(_){}
+    const response = await axios.post(url, userData, { withCredentials: false });
+    if (response?.data) {
+      localStorage.setItem('user', JSON.stringify(response.data));
+    }
+    return response.data;
+  } catch (err) {
+    try { console.error('[authService] login failed', err?.response?.status, err?.response?.data || err?.message); } catch(_){}
+    throw err;
   }
-  return response.data;
 };
 
 // Logout user

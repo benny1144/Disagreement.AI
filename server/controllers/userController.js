@@ -76,7 +76,11 @@ const getMe = asyncHandler(async (req, res) => {
 
 // Generate JWT
 const generateToken = (id) => {
-    return jwt.sign({ id }, process.env.JWT_SECRET, {
+    const secret = process.env.JWT_SECRET || process.env.SECRET_KEY;
+    if (!secret) {
+        throw new Error('Server misconfigured: JWT secret is not set (expected JWT_SECRET or SECRET_KEY)');
+    }
+    return jwt.sign({ id }, secret, {
         expiresIn: '30d',
     });
 };

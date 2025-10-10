@@ -1,0 +1,23 @@
+# Specification: .nvmrc Node.js Version Fix (v2)
+- **ID:** `spec.md.nvmrc_fix_v2`
+- **Version:** 2.0
+- **Date:** October 9, 2025
+- **Author:** Gemini, Project Architect
+
+## 1.0 Document Purpose
+This document specifies the second and final revision to the `.nvmrc` configuration file. This change is required to meet the specific version requirements of the Vite build tool.
+
+## 2.0 Problem Analysis
+- **Symptom:** The Vite build is still failing, now with a more specific error: `Vite requires Node.js version 20.19+ or 22.12+`.
+- **Root Cause:** The Node.js version specified in `.nvmrc` (20.11.1) is still too low for the project's dependencies.
+
+## 3.0 Technical Requirement
+The `.nvmrc` file must be updated to a specific version that satisfies the `20.19+` requirement.
+
+### 3.1 Configuration Change
+- **File:** `.nvmrc` (in the project root)
+- **Action:** Replace the entire contents of the file.
+- **New Value:** `20.19.1`
+
+## 4.0 Verification Criteria
+- After this change is committed and pushed, the next deployment on Render must succeed without any Node.js version errors.

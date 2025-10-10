@@ -4,6 +4,13 @@ import axios from 'axios'
 import { io, Socket } from 'socket.io-client'
 import InviteUserModal from '../components/InviteUserModal.jsx'
 
+// Derive API base from environment; fallback to same-origin relative /api
+const envApi = typeof import.meta !== 'undefined' ? import.meta.env?.VITE_API_URL : undefined
+const API_BASE = envApi && String(envApi).trim() !== '' ? String(envApi).replace(/\/$/, '') : ''
+const API_URL = API_BASE ? `${API_BASE}/api` : '/api'
+// For Socket.IO, connect to the API base origin if provided; otherwise default to current origin
+const SOCKET_BASE: string | undefined = API_BASE || undefined
+
 interface Message {
   _id?: string
   sender?: any
@@ -50,7 +57,7 @@ export default function ChatPage(): JSX.Element {
           return
         }
         const user = JSON.parse(stored)
-        const res = await axios.get(`http://localhost:3000/api/disagreements/${id}` , {
+        const res = await axios.get(`${API_URL}/disagreements/${id}` , {
           headers: { Authorization: `Bearer ${user.token}` },
         })
         const data = res.data || {}
@@ -73,7 +80,7 @@ export default function ChatPage(): JSX.Element {
   // Socket setup
   useEffect(() => {
     if (!id) return
-    const socket = io('http://localhost:3000', { transports: ['websocket'], withCredentials: true })
+    const socket = io(SOCKET_BASE, { transports: ['websocket'], withCredentials: true })
     socketRef.current = socket
 
     const handleConnect = () => {

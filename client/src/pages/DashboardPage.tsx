@@ -4,6 +4,11 @@ import axios from 'axios'
 import authService from '../features/auth/authService.js'
 import CreateDisagreementModal from '../components/CreateDisagreementModal.jsx'
 
+// Derive API base from environment; fallback to same-origin relative /api
+const envApi = typeof import.meta !== 'undefined' ? import.meta.env?.VITE_API_URL : undefined
+const API_BASE = envApi && String(envApi).trim() !== '' ? String(envApi).replace(/\/$/, '') : ''
+const API_URL = API_BASE ? `${API_BASE}/api` : '/api'
+
 interface Disagreement {
   _id: string
   text?: string
@@ -43,7 +48,7 @@ export default function DashboardPage(): JSX.Element {
       try {
         setIsLoading(true)
         setError('')
-        const res = await axios.get('http://localhost:3000/api/disagreements', {
+        const res = await axios.get(`${API_URL}/disagreements`, {
           headers: { Authorization: `Bearer ${user.token}` },
         })
         setDisagreements(Array.isArray(res.data) ? res.data : [])

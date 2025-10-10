@@ -15,7 +15,7 @@ export default function LoginPage(): JSX.Element {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log('Login attempt...', { email })
+    console.log(`Login attempt with email: ${email}`)
     try {
       const user = await authService.login(formData)
       if (user) {

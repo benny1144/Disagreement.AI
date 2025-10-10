@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "type": "commonjs",
+  "scripts": {
+    "build": "npm --prefix client install && npm --prefix client run build"
+  },
   "dependencies": {
     "mongodb": "^6.20.0",
     "express": "^4.21.2",

@@ -13,8 +13,9 @@ export default function SignUpPage(): JSX.Element {
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
-  const onSubmit = async (e: React.FormEvent) => {
+  const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
+    console.log('Sign up attempt...', { name, email })
 
     if (password !== password2) {
       if (typeof window !== 'undefined') {
@@ -27,12 +28,14 @@ export default function SignUpPage(): JSX.Element {
       const userData = { name, email, password }
       const user = await authService.register(userData)
       if (user) {
+        console.log('Registration successful!')
         if (typeof window !== 'undefined') {
           window.alert('Account Created: You have been successfully registered.')
         }
         navigate('/dashboard')
       }
     } catch (error: any) {
+      console.error('Registration failed:', error)
       const message =
         (error && error.response && error.response.data && error.response.data.message) ||
         (error && error.message) ||
@@ -45,7 +48,7 @@ export default function SignUpPage(): JSX.Element {
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center px-4 font-sans">
-      <form onSubmit={onSubmit} className="w-full max-w-md border border-slate-200 rounded-xl shadow-sm p-8">
+      <form onSubmit={handleSignUp} className="w-full max-w-md border border-slate-200 rounded-xl shadow-sm p-8">
         <h1 className="text-2xl font-bold text-slate-800">Create Account</h1>
         <p className="text-lg text-slate-600 mt-1">Start resolving disagreements with a calm, clear workflow.</p>
 

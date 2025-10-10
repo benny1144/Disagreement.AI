@@ -13,14 +13,17 @@ export default function LoginPage(): JSX.Element {
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
-  const onSubmit = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+    console.log('Login attempt...', { email })
     try {
       const user = await authService.login(formData)
       if (user) {
+        console.log('Login successful!')
         navigate('/dashboard')
       }
     } catch (error: any) {
+      console.error('Login failed:', error)
       const message =
         (error && error.response && error.response.data && error.response.data.message) ||
         (error && error.message) ||
@@ -33,7 +36,7 @@ export default function LoginPage(): JSX.Element {
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
-      <form onSubmit={onSubmit} className="w-full max-w-md bg-white rounded-lg shadow-md p-8">
+      <form onSubmit={handleLogin} className="w-full max-w-md bg-white rounded-lg shadow-md p-8">
         <h1 className="text-3xl font-bold text-slate-800">Log In to Your Account</h1>
 
         <div className="mt-8 space-y-5">

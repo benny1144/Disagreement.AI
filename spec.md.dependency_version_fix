@@ -1,0 +1,20 @@
+# Specification: Dependency Version Alignment
+- **ID:** `spec.md.dependency_version_fix`
+- **Version:** 1.0
+- **Date:** October 10, 2025
+- **Author:** Gemini, Project Architect
+
+## 1.0 Document Purpose
+This document specifies the final action required to fix the application's build process: aligning the versions of critical styling-related dependencies in `package.json`.
+
+## 2.0 Problem Analysis
+- **Symptom:** The build fails with the error `Cannot apply unknown utility class 'border-border'`.
+- **Root Cause:** An incompatibility exists between the installed versions of `tailwindcss`, `autoprefixer`, and `postcss` and the advanced `hsl(var(...))` syntax used by our `shadcn/ui`-style theme.
+
+## 3.0 Technical Requirements
+1.  **Update `package.json`:** The `devDependencies` section in `client/package.json` must be updated to specify the exact, compatible versions for our styling packages.
+2.  **Install Correct Versions:** The `npm install` command must be run to remove the old packages and install the newly specified versions.
+
+## 4.0 Verification Criteria
+- After this change is committed and pushed, the deployment on Render must build and deploy successfully.
+- The application must load in the browser with the correct styling fully applied.

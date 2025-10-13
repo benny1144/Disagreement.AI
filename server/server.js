@@ -97,6 +97,11 @@ app.use('/api/users', userRoutes);
 app.use('/api/disagreements', disagreementRoutes);
 app.use('/api', contactRoutes); // Primary: mount contact routes from router
 
+// Lightweight health check (for clients to auto-detect API availability)
+app.get('/api/health', (req, res) => {
+    res.status(200).json({ status: 'ok' });
+});
+
 // Fallback: direct /api/contact endpoint (uses global fetch in Node 18+)
 // This ensures the endpoint exists even if the router fails to load under some entrypoints
 // Logging controls and strict mode for fallback endpoint

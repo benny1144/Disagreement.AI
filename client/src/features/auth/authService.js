@@ -53,9 +53,17 @@ function resolveApiBase() {
 
 const API_BASE = resolveApiBase();
 const API_URL = API_BASE ? `${API_BASE}/api/users/` : '/api/users/';
-const AXIOS_DEFAULTS = { withCredentials: false, timeout: 15000 };
+const AXIOS_DEFAULTS = { withCredentials: false, timeout: 8000 };
 // Diagnostic: show where auth requests will go
 try { console.log(`[authService] API base: ${API_BASE || '(relative origin)'}; URL prefix: ${API_URL}`); } catch (_) {}
+
+// Warn if running on disagreement.ai without explicit API base (likely no API under this host)
+try {
+  const loc = typeof window !== 'undefined' ? window.location : undefined;
+  if (loc && /(^|\.)disagreement\.ai$/i.test(loc.host) && (!API_BASE || API_BASE === loc.origin)) {
+    console.warn('[authService] No explicit API base configured. Using same-origin on disagreement.ai, which likely has no API proxy. Set VITE_API_URL to your backend base (e.g., https://your-backend.example.com).');
+  }
+} catch (_) {}
 
 // Register user
 export const register = async (userData) => {

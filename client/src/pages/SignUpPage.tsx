@@ -13,11 +13,18 @@ export default function SignUpPage(): JSX.Element {
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState('')
+
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (isSubmitting) return
+    setSubmitError('')
+    setIsSubmitting(true)
     console.log('Sign up attempt...', { name, email })
 
     if (password !== password2) {
+      setIsSubmitting(false)
       if (typeof window !== 'undefined') {
         window.alert('Registration Failed: Passwords do not match.')
       }
@@ -40,9 +47,12 @@ export default function SignUpPage(): JSX.Element {
         (error && error.response && error.response.data && error.response.data.message) ||
         (error && error.message) ||
         error?.toString()
+      setSubmitError(message || 'Network error. Please try again later.')
       if (typeof window !== 'undefined') {
         window.alert(`Registration Failed: ${message}`)
       }
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -108,10 +118,14 @@ export default function SignUpPage(): JSX.Element {
 
         <button
           type="submit"
-          className="mt-6 w-full bg-blue-600 text-white font-semibold rounded-md shadow-sm hover:bg-blue-500 transition-colors py-2 text-lg"
+          disabled={isSubmitting}
+          className={`mt-6 w-full font-semibold rounded-md shadow-sm transition-colors py-2 text-lg ${isSubmitting ? 'bg-blue-300 cursor-not-allowed text-white' : 'bg-blue-600 hover:bg-blue-500 text-white'}`}
         >
-          Sign Up
+          {isSubmitting ? 'Signing up…' : 'Sign Up'}
         </button>
+        {submitError && (
+          <p className="mt-3 text-center text-red-600 text-sm">{submitError}</p>
+        )}
       </form>
     </div>
   )

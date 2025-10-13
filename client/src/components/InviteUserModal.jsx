@@ -1,115 +1,152 @@
-import { useState, useEffect } from 'react';
-import { Box, Button, Input, Text, VStack, Flex } from '@chakra-ui/react';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 
-/**
- * InviteUserModal
- *
- * Props:
- * - isOpen: boolean — controls visibility
- * - onClose: function — called to close the modal
- * - disagreementId?: string — optional; passed through for handlers
- * - onSend?: function(email: string, disagreementId?: string) — optional callback after successful invite
- */
+// CRITICAL FIX: Use the same robust API URL resolution as the rest of the application.
+// This ensures the component works in both development and production environments.
+const API_URL = import.meta.env.VITE_API_URL || '';
+const API_BASE = `${API_URL}/api/disagreements`;
+
 function InviteUserModal({ isOpen, onClose, disagreementId, onSend }) {
   const [email, setEmail] = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  const dialogRef = useRef(null);
 
+  // Effect to programmatically control the dialog's visibility
   useEffect(() => {
-    if (isOpen) setEmail('');
+    const dialogNode = dialogRef.current;
+    if (isOpen && dialogNode && !dialogNode.open) {
+      dialogNode.showModal();
+    } else if (!isOpen && dialogNode && dialogNode.open) {
+      dialogNode.close();
+    }
+  }, [isOpen]);
+
+  // Effect to reset the form's state when the modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setEmail('');
+      setError('');
+      setSuccessMessage('');
+      setIsSubmitting(false);
+    }
   }, [isOpen]);
 
   const handleSubmit = async (e) => {
-    e?.preventDefault?.();
-    const trimmed = (email || '').trim();
-    if (!trimmed) {
-      if (typeof window !== 'undefined') {
-        window.alert("Please enter the user's email address.");
-      }
+    e.preventDefault();
+    setError('');
+    setSuccessMessage('');
+    const trimmedEmail = email.trim();
+
+    if (!trimmedEmail) {
+      setError("Please enter the user's email address.");
       return;
     }
 
-    // Read auth token
     let token = null;
     try {
       const stored = localStorage.getItem('user');
-      if (stored) {
-        const user = JSON.parse(stored);
-        token = user?.token;
-      }
-    } catch {}
+      if (stored) token = JSON.parse(stored)?.token;
+    } catch { /* Ignore localStorage errors */ }
 
     if (!token) {
-      if (typeof window !== 'undefined') {
-        window.alert('You must be logged in to send an invite.');
-      }
+      setError('Authentication error. Please log in again.');
       return;
     }
 
+    setIsSubmitting(true);
     try {
-      setSubmitting(true);
-      const url = `http://localhost:3000/api/disagreements/${disagreementId}/invite`;
+      const url = `${API_BASE}/${disagreementId}/invite`;
       await axios.post(
         url,
-        { email: trimmed },
+        { email: trimmedEmail },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      if (typeof window !== 'undefined') {
-        window.alert('Invitation sent successfully.');
-      }
+      setSuccessMessage('Invitation sent successfully!');
+      setEmail(''); // Clear the input on success
 
       if (typeof onSend === 'function') {
-        try { onSend(trimmed, disagreementId); } catch {}
+        onSend(trimmedEmail, disagreementId);
       }
 
-      if (typeof onClose === 'function') onClose();
-    } catch (error) {
-      const message =
-        (error && error.response && error.response.data && error.response.data.message) ||
-        error?.message ||
-        'Failed to send invite';
-      if (typeof window !== 'undefined') {
-        window.alert(`Invite failed: ${message}`);
-      }
+      // Automatically close the modal after a short delay on success
+      setTimeout(() => {
+        onClose();
+      }, 2000);
+
+    } catch (err) {
+      const message = err?.response?.data?.message || err?.message || 'Failed to send invite.';
+      setError(message);
     } finally {
-      setSubmitting(false);
+      setIsSubmitting(false);
     }
   };
 
-  if (!isOpen) return null;
+  const handleClose = () => {
+    if (!isSubmitting) {
+      onClose();
+    }
+  };
 
   return (
-    <Box position="fixed" top="0" right="0" bottom="0" left="0" zIndex={1100}>
-      {/* Backdrop */}
-      <Box position="absolute" top="0" right="0" bottom="0" left="0" bg="rgba(0,0,0,0.45)" onClick={onClose} />
+    <dialog ref={dialogRef} onClose={handleClose} className="bg-transparent backdrop:bg-black/50 p-0 rounded-xl w-full max-w-md">
+      <div className="bg-white rounded-xl shadow-xl">
+        <form onSubmit={handleSubmit} className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-slate-800">Invite to Disagreement</h2>
+            <button
+              type="button"
+              onClick={handleClose}
+              className="text-2xl font-light text-slate-500 hover:text-slate-800"
+              aria-label="Close"
+            >
+              &times;
+            </button>
+          </div>
 
-      {/* Modal Panel */}
-      <Flex position="absolute" top="0" right="0" bottom="0" left="0" align="center" justify="center" p={4}>
-        <Box as="form" onSubmit={handleSubmit} bg="white" borderRadius="xl" boxShadow="xl" w="100%" maxW="md" p={6}>
-          <Flex align="center" justify="space-between" mb={4}>
-            <Text as="h2" fontSize="xl" fontWeight="semibold">Invite Someone to this Disagreement</Text>
-            <Button variant="ghost" size="sm" onClick={onClose}>Close</Button>
-          </Flex>
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="invite-email" className="block text-slate-700 font-semibold mb-1">
+                User's Email
+              </label>
+              <input
+                id="invite-email"
+                type="email"
+                placeholder="name@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+          </div>
 
-          <VStack align="stretch" spacing={3}>
-            <Text fontWeight="medium">User's Email</Text>
-            <Input
-              type="email"
-              placeholder="name@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </VStack>
+          {/* Inline feedback provides a much better UX than window.alert */}
+          {error && <p className="mt-3 text-center text-red-600 text-sm">{error}</p>}
+          {successMessage && <p className="mt-3 text-center text-green-600 text-sm">{successMessage}</p>}
 
-          <Flex justify="flex-end" gap={3} mt={6}>
-            <Button variant="ghost" onClick={onClose} disabled={submitting}>Cancel</Button>
-            <Button colorScheme="blue" type="submit" isDisabled={submitting} isLoading={submitting}>Send Invite</Button>
-          </Flex>
-        </Box>
-      </Flex>
-    </Box>
+          <div className="flex justify-end gap-3 mt-6">
+            <button
+              type="button"
+              onClick={handleClose}
+              disabled={isSubmitting}
+              className="px-4 py-2 rounded-md border border-slate-300 text-slate-700 hover:bg-slate-50 text-lg disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting || !!successMessage}
+              className="px-5 py-2 rounded-md bg-blue-600 text-white font-semibold shadow-sm hover:bg-blue-500 text-lg disabled:bg-blue-300 disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? 'Sending...' : 'Send Invite'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </dialog>
   );
 }
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import authService from '../features/auth/authService.js'
 
 export default function SignUpPage(): JSX.Element {
@@ -126,6 +126,12 @@ export default function SignUpPage(): JSX.Element {
         {submitError && (
           <p className="mt-3 text-center text-red-600 text-sm">{submitError}</p>
         )}
+        <p className="mt-4 text-center text-sm text-slate-600">
+          Already have an account?{' '}
+          <Link to="/login" className="text-blue-600 hover:underline">
+            Log In
+          </Link>
+        </p>
       </form>
     </div>
   )

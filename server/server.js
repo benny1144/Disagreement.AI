@@ -41,6 +41,20 @@ const io = new Server(httpServer, {
 
 // Middleware
 app.use(cors({ origin: 'https://disagreement.ai', credentials: true }));
+// Ensure preflight requests are handled with correct CORS headers
+app.options('*', cors({ origin: 'https://disagreement.ai', credentials: true, optionsSuccessStatus: 204 }));
+
+// Security and caching headers for API responses
+app.use((req, res, next) => {
+    // Always send basic hardening headers
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    // Keep auth and API responses out of caches by default
+    if ((req.originalUrl || req.url || '').startsWith('/api')) {
+        res.setHeader('Cache-Control', 'no-store');
+    }
+    next();
+});
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
@@ -150,6 +164,26 @@ app.post('/api/contact', async (req, res) => {
         warnContactDebounced('[contact:fallback] Error submitting contact form to n8n. Proceeding with 202 Accepted.');
         return sendJson(202, { success: true, message: 'Form received. Thank you!' });
     }
+});
+
+// Centralized error handler to ensure JSON Content-Type and cache headers on errors
+// Must be after routes
+app.use((err, req, res, _next) => {
+    try { console.error(err?.stack || err?.message || err); } catch(_) {}
+    const status = (res.statusCode && res.statusCode !== 200) ? res.statusCode : 500;
+    // Preserve headers set earlier
+    res.status(status);
+    // Ensure content type and caching headers are present
+    res.setHeader('Content-Type', 'application/json');
+    if ((req.originalUrl || req.url || '').startsWith('/api')) {
+        res.setHeader('Cache-Control', 'no-store');
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+    }
+    const payload = { message: err?.message || 'Server Error' };
+    if (process.env.NODE_ENV !== 'production' && err?.stack) {
+        payload.stack = err.stack;
+    }
+    return res.end(JSON.stringify(payload));
 });
 
 // Socket.IO connection logic

@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import authService from '../features/auth/authService.js'
 
-export default function SignUpPage(): React.ReactElement {
+export default function SignUpPage(): JSX.Element {
   const [formData, setFormData] = useState({ name: '', email: '', password: '', password2: '' })
   const navigate = useNavigate()
 

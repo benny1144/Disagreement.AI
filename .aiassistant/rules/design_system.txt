@@ -1,67 +1,67 @@
-# Design System & Architectural Blueprint
-- **ID:** `design-system.md`
-- **Version:** 2.0 (Merged)
+# Specification: Marketing Site - Global Design & Homepage
+- **ID:** `spec.md.global`
+- **Version:** 1.0
 - **Date:** October 5, 2025
 - **Author:** Gemini, Project Architect
 
-## 1.0 Design Philosophy & Mission
-- **System Name:** "Apple-Inspired Trust & Clarity"
-- **Mission:** To visually and textually guide users from a state of conflict to a state of resolution. Our tagline is "From Conflict to Clarity."
-- **Core Principles:**
-  - **De-escalation by Design:** The UI must feel calm, clean, and in control to reduce user anxiety.
-  - **Trust & Transparency:** Components and layouts should be clear, honest, and provide easy access to security and privacy information.
-  - **Minimalist Aesthetic:** Every element must have a purpose. Avoid clutter and use generous white space to guide the eye.
+## 1.0 Document Purpose
+This document serves as the single source of truth for the design, structure, and components of all public-facing marketing pages for Disagreement.AI. Its purpose is to ensure brand consistency, visual coherence, and a predictable user experience across the entire pre-authentication site (Homepage, FAQ, Privacy Policy, etc.).
 
-## 2.0 Global Design Rules
+## 2.0 Global Design & UI Rules
+These rules apply to ALL marketing pages unless explicitly overridden in a page-specific blueprint.
 
 ### 2.1 Color Palette
-- **Primary Blue:** `#5D5FEF` (Branding, Positive Actions, Links)
-- **Accent Green:** `#28A745` (Success States)
-- **Standard Text:** `#333333`
-- **Subtle Borders / Backgrounds:** `#E2E8F0` (Tailwind `gray-200`)
-- **White:** `#FFFFFF`
+- **Primary Blue:** `#2667FF` (Used for primary CTAs, links, and brand highlights)
+- **Neutral - Dark Text:** `#1E293B` (Tailwind `slate-800`, for headlines and body text)
+- **Neutral - Medium Text:** `#475569` (Tailwind `slate-600`, for subheadings and secondary text)
+- **Neutral - Light Background:** `#F8FAFC` (Tailwind `slate-50`, for section backgrounds)
+- **Neutral - White:** `#FFFFFF` (For primary backgrounds and inverted text)
 
 ### 2.2 Typography
-- **Font Family:** Nunito
-- **Icon Library:** Heroicons
+- **Font:** System Default, Sans-Serif (Inter, Helvetica, Arial)
 - **Headlines (h1, h2, h3):** `font-bold`, `tracking-tight`
   - `h1`: `text-4xl` to `text-6xl`
   - `h2`: `text-3xl` to `text-4xl`
 - **Body Text (p):** `text-lg`, `leading-8`
 
-### 2.3 Brand & UX Rules
-- **Stylized Brand Name:** In the brand name "Disagreement.AI," the word "agreement" **MUST** be styled in Primary Blue. The "Dis" prefix and ".AI" suffix **MUST** be the Standard Text color.
-- **Linguistic Reinforcement:** The words "Agree" and "Agreement," when used as positive action words (like on buttons or links), **MUST** be styled in Primary Blue.
+### 2.3 Buttons
+- **Primary Button:** Solid Primary Blue background, white text. `bg-blue-600 text-white font-semibold rounded-md shadow-sm hover:bg-blue-500`
+- **Secondary Button (Log In):** Transparent background, dark text, no border. `text-sm font-semibold leading-6 text-gray-900`
 
-## 3.0 Global Component Styles
+## 3.0 Global Components
+These components will be used consistently across all marketing pages.
 
-### 3.1 Buttons
-- **Marketing Site (Tailwind CSS):** Pill-shaped (`rounded-full`). Primary CTAs must use the Primary Blue background with high-contrast white text.
-- **In-App (Chakra UI):** `rounded="lg"`. Primary CTAs must use `colorScheme="blue"`.
+### 3.1 Navbar
+- **Purpose:** Provide consistent, simple navigation.
+- **Structure:**
+  - **Left:** Disagreement.AI Logo.
+  - **Right:** "Log In" button (secondary style), "Sign Up" button (primary style).
 
-### 3.2 Cards / Containers
-- **Style:** `rounded="xl"` with a subtle box shadow: `boxShadow="md"`.
-
-### 3.3 Chat Interface ("iMessage" Pattern)
-- **User's Messages:** Right-aligned, Primary Blue background, white text.
-- **Other Participant's Messages:** Left-aligned, gray background (`#E2E8F0`), black text.
-- **AI Mediator's Messages:** Left-aligned, distinct avatar, unique subtle background (`#F3F4FF`).
+### 3.2 Footer
+- **Purpose:** Standard site footer for legal links and contact information.
+- **Structure:**
+  - **Top Row:** Links to Privacy Policy, Terms & Conditions, FAQ, Contact Us.
+  - **Bottom Row:** © 2025 Disagreement.AI. All rights reserved.
 
 ## 4.0 Page-Specific Blueprints
 
 ### 4.1 Homepage (`index.html`) Blueprint
-The homepage will be constructed using the following components in this precise order:
+The homepage follows a narrative flow designed to maximize user understanding and conversion. It will be constructed using the following components in this precise order:
+
 1.  **Global Navbar**
-2.  **Hero Section**
-3.  **Explainer Video Section**
-4.  **"Perfect For" (Use Cases) Section**
-5.  **How It Works Section**
-6.  **Features Section**
-7.  **Final CTA Section**
+2.  **Hero Section:** Captures attention with the core value proposition ("From Conflict to Clarity") and a primary "Get Started for Free" CTA.
+3.  **Explainer Video Section:** A clean, focused section featuring the 90-second animated explainer video as its centerpiece. This is our primary educational tool.
+4.  **How It Works Section:** A simple 3-step visual graphic explaining the process: 1. State Your Case, 2. AI Mediates, 3. Reach Agreement.
+5.  **"Perfect For" (Use Cases) Section:** Displays the platform's versatility using a modern, tag-based UI to list target audiences (e.g., Freelancers, Landlords, Sports Teams). Headline: "Designed for Any Disagreement."
+6.  **Features Section:** A brief overview of key product features that support the value proposition (e.g., "Neutral AI Mediator," "Secure & Confidential," "Final Agreement Reports").
+7.  **Final CTA Section:** A large, clear, final call-to-action to encourage sign-ups before the footer. Headline: "Ready to find your resolution?"
 8.  **Global Footer**
 
 ### 4.2 Standard Content Pages (Privacy, Terms, FAQ)
-These pages will use a simpler, document-style layout:
+These pages will use a simpler, document-style layout for readability.
+
 1.  **Global Navbar**
-2.  **Page Header & Content Body**
-3.  **Global Footer**
+2.  **Page Header:** A clean container with the page title (`h1`).
+3.  **Content Body:** A single-column, max-width container for text, subheadings, and lists.
+4.  **Global Footer**
+

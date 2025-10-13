@@ -1,13 +1,12 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { Box, Spinner } from '@chakra-ui/react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Component, lazy, Suspense } from 'react';
 
-// --- (Step 1: Import the new HomePage component) ---
+// --- (Step 1: Update the HomePage import to point to the new .tsx file) ---
 const HomePage = lazy(() => import('./pages/HomePage'));
-const LoginPage = lazy(() => import('./pages/LoginPage.tsx'));
-const SignUpPage = lazy(() => import('./pages/SignUpPage.tsx'));
-const DashboardPage = lazy(() => import('./pages/DashboardPage.tsx'));
-const ChatPage = lazy(() => import('./pages/ChatPage.tsx'));
+const LoginPage = lazy(() => import('./pages/LoginPage'));
+const SignUpPage = lazy(() => import('./pages/SignUpPage'));
+const DashboardPage = lazy(() => import('./pages/DashboardPage'));
+const ChatPage = lazy(() => import('./pages/ChatPage'));
 
 class ErrorBoundary extends Component {
     // ... (No changes needed in the ErrorBoundary component)
@@ -19,7 +18,6 @@ class ErrorBoundary extends Component {
         return { hasError: true, error };
     }
     componentDidCatch(error, info) {
-        // eslint-disable-next-line no-console
         console.error('App crashed with error:', error, info);
     }
     render() {
@@ -42,22 +40,20 @@ class ErrorBoundary extends Component {
     }
 }
 
-// --- (Step 2: The HomeRedirect function is no longer needed and has been removed) ---
 
 function App() {
     return (
         <ErrorBoundary>
             <Router>
                 <div className="container">
+                    {/* --- (Step 2: Replace Chakra spinner with a simple div for the loading fallback) --- */}
                     <Suspense fallback={
-                        <Box display="flex" alignItems="center" justifyContent="center" minH="50vh">
-                            <Spinner size="lg" thickness="3px" color="blue.500" />
-                        </Box>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '50vh' }}>
+                            <p>Loading...</p>
+                        </div>
                     }>
                         <Routes>
-                            {/* --- (Step 3: The root path now renders HomePage) --- */}
                             <Route path='/' element={<HomePage />} />
-
                             <Route path='/login' element={<LoginPage />} />
                             <Route path='/register' element={<SignUpPage />} />
                             <Route path='/dashboard' element={<DashboardPage />} />

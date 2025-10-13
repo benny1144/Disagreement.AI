@@ -1,10 +1,16 @@
+/// <reference types="node" />
+/* eslint-env node */
+
 // Import necessary packages
 const express = require('express');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 
-// Load environment variables from .env file
-dotenv.config();
+// Load environment variables from .env files using absolute paths relative to this file
+const path = require('path');
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
+dotenv.config({ path: path.resolve(__dirname, '.env') });
+dotenv.config({ path: path.resolve(__dirname, '../services/.env') });
 
 // Import routes
 const userRoutes = require('./routes/users');

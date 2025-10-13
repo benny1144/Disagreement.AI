@@ -1,4 +1,5 @@
 /// <reference types="node" />
+// noinspection SpellCheckingInspection
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
@@ -24,7 +25,7 @@ dotenv.config({ path: path.resolve(__dirname, '.env') });
 dotenv.config({ path: path.resolve(__dirname, '../services/.env') });
 
 // Connect to database
-connectDB();
+void connectDB();
 
 const app = express();
 const httpServer = createServer(app);
@@ -45,6 +46,11 @@ app.use(cors({ origin: 'https://disagreement.ai', credentials: true }));
 app.options('*', cors({ origin: 'https://disagreement.ai', credentials: true, optionsSuccessStatus: 204 }));
 
 // Security and caching headers for API responses
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
 app.use((req, res, next) => {
     // Always send basic hardening headers
     res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -59,9 +65,14 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 // Universal Request Logger (helps debug proxy/route issues)
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
 app.use((req, res, next) => {
-    const path = req.originalUrl || req.url || '<unknown>';
-    console.log(`Incoming Request: ${req.method} ${path}`);
+    const reqPath = req.originalUrl || req.url || '<unknown>';
+    console.log(`Incoming Request: ${req.method} ${reqPath}`);
     next();
 });
 
@@ -85,6 +96,10 @@ const warnContactDebounced = (msg) => {
     }
 };
 
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 app.post('/api/contact', async (req, res) => {
     const { fullName, email, message } = req.body;
     const N8N_WEBHOOK_URL = process.env.N8N_CONTACT_WEBHOOK_URL || 'https://disagreementai.app.n8n.cloud/webhook/contact-form-submissions';

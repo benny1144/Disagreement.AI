@@ -65,10 +65,50 @@ try {
   }
 } catch (_) {}
 
+// One-time guard to prevent silent failures when API base isn't configured on disagreement.ai
+let __apiGuardShown = false;
+function shouldGuardApiBase() {
+  try {
+    const loc = typeof window !== 'undefined' ? window.location : undefined;
+    return !!(loc && /(^|\.)disagreement\.ai$/i.test(loc.host) && (!API_BASE || API_BASE === loc.origin));
+  } catch (_) {
+    return false;
+  }
+}
+async function probeHealth(url) {
+  const ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : undefined;
+  const timer = ctrl ? setTimeout(() => ctrl.abort(), 1800) : undefined;
+  try {
+    const res = await fetch(url, { method: 'GET', cache: 'no-store', signal: ctrl?.signal });
+    return !!(res && res.ok);
+  } catch (_) {
+    return false;
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+async function ensureApiBaseReady() {
+  if (!shouldGuardApiBase()) return;
+  const ok = await probeHealth('/api/health');
+  if (!ok) {
+    if (!__apiGuardShown) {
+      __apiGuardShown = true;
+      try {
+        console.warn('[authService] API base appears unconfigured for disagreement.ai. Set VITE_API_URL to your backend base (e.g., https://your-backend.example.com). Blocking auth requests to avoid hangs.');
+      } catch (_) {}
+    }
+    const err = new Error('API not reachable at this origin. Set VITE_API_URL to your backend base and redeploy the client.');
+    // @ts-ignore add a code for upstream handlers if they want
+    err.code = 'API_BASE_UNCONFIGURED';
+    throw err;
+  }
+}
+
 // Register user
 export const register = async (userData) => {
   const url = `${API_URL}register`;
   try {
+    await ensureApiBaseReady();
     try { console.log('[authService] POST', url, { email: userData?.email }); } catch(_){}
     const response = await axios.post(url, userData, AXIOS_DEFAULTS);
     if (response?.data) {
@@ -85,6 +125,7 @@ export const register = async (userData) => {
 export const login = async (userData) => {
   const url = `${API_URL}login`;
   try {
+    await ensureApiBaseReady();
     try { console.log('[authService] POST', url, { email: userData?.email }); } catch(_){}
     const response = await axios.post(url, userData, AXIOS_DEFAULTS);
     if (response?.data) {

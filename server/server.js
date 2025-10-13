@@ -29,8 +29,8 @@ connectDB();
 const app = express();
 const httpServer = createServer(app);
 
-// Allow dynamic origin to reduce CORS-related login failures (can be tightened via CLIENT_URL env)
-const CLIENT_ORIGIN = process.env.CLIENT_URL || true; // true reflects request origin
+// CORS: Explicitly allow only the production frontend origin per security policy
+const CLIENT_ORIGIN = 'https://disagreement.ai';
 const io = new Server(httpServer, {
     cors: {
         origin: CLIENT_ORIGIN,
@@ -40,7 +40,7 @@ const io = new Server(httpServer, {
 });
 
 // Middleware
-app.use(cors({ origin: CLIENT_ORIGIN, credentials: true }));
+app.use(cors({ origin: 'https://disagreement.ai', credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 

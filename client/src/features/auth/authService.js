@@ -14,6 +14,32 @@ function resolveApiBase() {
 
   // 3) Normalize
   base = (base || '').toString().trim().replace(/\/$/, '');
+
+  // 4) In the browser, prefer safe same-origin defaults and avoid using the client host as API
+  try {
+    const locOrigin = (typeof window !== 'undefined' && window.location && window.location.origin) ? window.location.origin : '';
+    const locHost = locOrigin ? new URL(locOrigin).host : '';
+    const baseHost = base ? new URL(base).host : '';
+
+    // If we are on the production domain, force same-origin calls to avoid CORS and misconfigured envs
+    if (locHost && /(^|\.)disagreement\.ai$/i.test(locHost)) {
+      return locOrigin;
+    }
+
+    // If the configured base points to the client Render host, avoid it
+    if (baseHost && /disagreement-ai-client\.onrender\.com$/i.test(baseHost)) {
+      // Prefer same-origin when available, or fall back to relative so the runtime origin is used
+      return locOrigin || '';
+    }
+
+    // If the configured base matches the current host, keep it
+    if (base && baseHost && locHost && baseHost === locHost) {
+      return base;
+    }
+  } catch (_) {
+    // Ignore URL parsing issues and fall through
+  }
+
   return base;
 }
 

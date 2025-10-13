@@ -30,20 +30,36 @@ void connectDB();
 const app = express();
 const httpServer = createServer(app);
 
-// CORS: Explicitly allow only the production frontend origin per security policy
-const CLIENT_ORIGIN = 'https://disagreement.ai';
+// CORS: Allow only our approved frontend origins (production and current Render client)
+const ALLOWED_ORIGINS = [
+    'https://disagreement.ai',
+    'https://www.disagreement.ai',
+    'https://disagreement-ai-client.onrender.com',
+];
+
+// Shared CORS options for Express
+const CORS_OPTIONS = {
+    origin: (origin, callback) => {
+        // Allow requests with no Origin header (same-origin, curl, SSR, etc.)
+        if (!origin) return callback(null, true);
+        if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+        return callback(new Error('Not allowed by CORS'));
+    },
+    credentials: true,
+};
+
 const io = new Server(httpServer, {
     cors: {
-        origin: CLIENT_ORIGIN,
+        origin: ALLOWED_ORIGINS,
         methods: ["GET", "POST"],
         credentials: true,
     }
 });
 
 // Middleware
-app.use(cors({ origin: 'https://disagreement.ai', credentials: true }));
+app.use(cors(CORS_OPTIONS));
 // Ensure preflight requests are handled with correct CORS headers
-app.options('*', cors({ origin: 'https://disagreement.ai', credentials: true, optionsSuccessStatus: 204 }));
+app.options('*', cors({ origin: CORS_OPTIONS.origin, credentials: true, optionsSuccessStatus: 204 }));
 
 // Security and caching headers for API responses
 /**

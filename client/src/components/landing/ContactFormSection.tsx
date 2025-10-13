@@ -58,10 +58,10 @@ export function ContactFormSection() {
             <div className="container mx-auto max-w-2xl">
                 <div className="text-center mb-12">
                     <h2 className="text-4xl md:text-5xl font-bold text-slate-800 mb-4">
-                        Get in Touch & Join the Waitlist
+                        Ask a Question -or- Request Early Access to the Test Product
                     </h2>
                     <p className="text-lg text-slate-600 max-w-xl mx-auto">
-                        Whether you have a question or want to be the first to know when our MVP launches, we'd love to hear from you.
+                        Whether you have a question or want to be the first to know when our initial test product launches, we'd love to hear from you.
                     </p>
                 </div>
 

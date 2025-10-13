@@ -15,21 +15,29 @@ function resolveApiBase() {
   // 3) Normalize
   base = (base || '').toString().trim().replace(/\/$/, '');
 
-  // 4) In the browser, prefer safe same-origin defaults and avoid using the client host as API
+  // 4) In the browser, choose the best base:
   try {
     const locOrigin = (typeof window !== 'undefined' && window.location && window.location.origin) ? window.location.origin : '';
     const locHost = locOrigin ? new URL(locOrigin).host : '';
     const baseHost = base ? new URL(base).host : '';
 
-    // If we are on the production domain, force same-origin calls to avoid CORS and misconfigured envs
-    if (locHost && /(^|\.)disagreement\.ai$/i.test(locHost)) {
-      return locOrigin;
+    const isClientRenderHost = (h) => /disagreement-ai-client\.onrender\.com$/i.test(h || '');
+    const isProdDomain = (h) => /(^|\.)disagreement\.ai$/i.test(h || '');
+
+    // If an explicit base is provided and it's NOT the client host, prefer it (even on disagreement.ai)
+    if (base && baseHost && !isClientRenderHost(baseHost)) {
+      return base;
     }
 
-    // If the configured base points to the client Render host, avoid it
-    if (baseHost && /disagreement-ai-client\.onrender\.com$/i.test(baseHost)) {
+    // Avoid using the client Render host as API base
+    if (base && baseHost && isClientRenderHost(baseHost)) {
       // Prefer same-origin when available, or fall back to relative so the runtime origin is used
       return locOrigin || '';
+    }
+
+    // If on the production domain and no reliable explicit base, use same-origin
+    if (locHost && isProdDomain(locHost)) {
+      return locOrigin;
     }
 
     // If the configured base matches the current host, keep it
@@ -45,6 +53,7 @@ function resolveApiBase() {
 
 const API_BASE = resolveApiBase();
 const API_URL = API_BASE ? `${API_BASE}/api/users/` : '/api/users/';
+const AXIOS_DEFAULTS = { withCredentials: false, timeout: 15000 };
 // Diagnostic: show where auth requests will go
 try { console.log(`[authService] API base: ${API_BASE || '(relative origin)'}; URL prefix: ${API_URL}`); } catch (_) {}
 
@@ -53,7 +62,7 @@ export const register = async (userData) => {
   const url = `${API_URL}register`;
   try {
     try { console.log('[authService] POST', url, { email: userData?.email }); } catch(_){}
-    const response = await axios.post(url, userData, { withCredentials: false });
+    const response = await axios.post(url, userData, AXIOS_DEFAULTS);
     if (response?.data) {
       localStorage.setItem('user', JSON.stringify(response.data));
     }
@@ -69,7 +78,7 @@ export const login = async (userData) => {
   const url = `${API_URL}login`;
   try {
     try { console.log('[authService] POST', url, { email: userData?.email }); } catch(_){}
-    const response = await axios.post(url, userData, { withCredentials: false });
+    const response = await axios.post(url, userData, AXIOS_DEFAULTS);
     if (response?.data) {
       localStorage.setItem('user', JSON.stringify(response.data));
     }

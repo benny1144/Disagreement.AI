@@ -15,7 +15,7 @@ export function HeroSection() {
         </p>
 
         <Button size="lg" className="mt-8 bg-[#2667FF] text-white hover:bg-[#2667FF]/90 px-8 py-6 text-lg">
-            <a href="#waitlist-form">Contact Us For Exclusive Access</a>
+            <a href="#waitlist-form">Get Early Access To Initial Test Product</a>
         </Button>
       </div>
     </section>

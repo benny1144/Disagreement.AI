@@ -37,12 +37,12 @@ export function ContactFormSection() {
             }
 
             // Success!
-            setFormStatus("Thank you! Your submission has been received.");
+            setFormStatus("Thank you! Your submission has been received. Email benny@disagreement.ai with any other questions or comments.");
             setFormData({ fullName: "", email: "", message: "" }); // Clear the form
         } catch (error) {
             // Handle network errors or if the fetch itself fails
             console.error("Submission error:", error);
-            setFormStatus("Something went wrong. Please try again.");
+            setFormStatus("Something went wrong. Please directly email benny@disagreement.ai");
         }
     };
 
@@ -58,7 +58,7 @@ export function ContactFormSection() {
             <div className="container mx-auto max-w-2xl">
                 <div className="text-center mb-12">
                     <h2 className="text-4xl md:text-5xl font-bold text-slate-800 mb-4">
-                        Ask a Question -or- Request Early Access to the Test Product
+                        Ask a Question -or- Get Early Access to the Test Product
                     </h2>
                     <p className="text-lg text-slate-600 max-w-xl mx-auto">
                         Whether you have a question or want to be the first to know when our initial test product launches, we'd love to hear from you.

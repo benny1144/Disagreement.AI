@@ -1,146 +1,156 @@
-import { useState, useEffect } from 'react';
-import { Box, Button, Input, VStack, Text, Flex } from '@chakra-ui/react';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
-/**
- * CreateDisagreementModal
- *
- * Props:
- * - isOpen: boolean — controls modal visibility
- * - onClose: function — called to close the modal
- * - onCreate?: function({ title, role }) — optional callback after create
- * - initialTitle?: string — optional prefill for title
- * - initialRole?: 'Mediator' | 'Fact-Finder' | 'Judge & Jury' — optional prefill for role
- */
-function CreateDisagreementModal({ isOpen, onClose, onCreate, initialTitle = '', initialRole = 'Mediator' }) {
-  const [title, setTitle] = useState(initialTitle);
-  const [role, setRole] = useState(initialRole);
-  const [submitting, setSubmitting] = useState(false);
-  const navigate = useNavigate();
+// CRITICAL FIX: Use the same robust API URL resolution as the rest of the application.
+// This ensures the component works in both development and production environments.
+const API_URL = import.meta.env.VITE_API_URL || '';
+const DISAGREEMENTS_API_BASE = `${API_URL}/api/disagreements`;
 
+function CreateDisagreementModal({ isOpen, onClose, onCreate }) {
+  const [title, setTitle] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const navigate = useNavigate();
+  const dialogRef = useRef(null); // Ref to control the native dialog element
+
+  // Effect to programmatically control the dialog's visibility based on the isOpen prop
   useEffect(() => {
-    // Reset form whenever the modal is opened
-    if (isOpen) {
-      setTitle(initialTitle || '');
-      setRole(initialRole || 'Mediator');
+    const dialogNode = dialogRef.current;
+    if (isOpen && dialogNode && !dialogNode.open) {
+      dialogNode.showModal();
+    } else if (!isOpen && dialogNode && dialogNode.open) {
+      dialogNode.close();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
+
+  // Effect to reset the form's state whenever the modal is opened
+  useEffect(() => {
+    if (isOpen) {
+      setTitle('');
+      setError('');
+      setIsSubmitting(false);
+    }
   }, [isOpen]);
 
   const handleSubmit = async (e) => {
-    e?.preventDefault?.();
-    const trimmed = (title || '').trim();
-    if (!trimmed) {
-      // Keep UX minimal and version-agnostic
-      if (typeof window !== 'undefined') {
-        window.alert('Please enter a title for your disagreement.');
-      }
+    e.preventDefault();
+    setError('');
+    const trimmedTitle = title.trim();
+
+    if (!trimmedTitle) {
+      setError('Please enter a title for your disagreement.');
       return;
     }
 
-    // Read auth token from localStorage
     let token = null;
     try {
       const stored = localStorage.getItem('user');
-      if (stored) {
-        const user = JSON.parse(stored);
-        token = user?.token;
-      }
-    } catch {}
+      if (stored) token = JSON.parse(stored)?.token;
+    } catch {
+      // Ignore localStorage parsing errors
+    }
 
     if (!token) {
-      if (typeof window !== 'undefined') {
-        window.alert('You must be logged in to create a disagreement.');
-      }
+      setError('Authentication error. Please log in again.');
       return;
     }
 
+    setIsSubmitting(true);
     try {
-      setSubmitting(true);
-      const res = await axios.post(
-        'http://localhost:3000/api/disagreements',
-        { text: trimmed }, // API expects text; role captured for future use
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      const response = await axios.post(
+        DISAGREEMENTS_API_BASE,
+        { text: trimmedTitle },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      const created = res?.data;
-      const newId = created?._id || created?.id;
+      const createdDisagreement = response.data;
 
-      // Optional external callback
+      // Notify the parent Dashboard component so it can update its list
       if (typeof onCreate === 'function') {
-        try { onCreate({ title: trimmed, role, created }); } catch {}
+        onCreate({ created: createdDisagreement });
       }
 
-      if (typeof onClose === 'function') onClose();
+      onClose(); // Close the modal on success
 
-      if (newId) {
-        navigate(`/disagreement/${newId}`);
-      } else if (typeof window !== 'undefined') {
-        window.alert('Created, but could not navigate to the new disagreement.');
+      // Navigate to the newly created disagreement page
+      if (createdDisagreement?._id) {
+        navigate(`/disagreement/${createdDisagreement._id}`);
       }
-    } catch (error) {
-      const message =
-        (error && error.response && error.response.data && error.response.data.message) ||
-        error?.message ||
-        'Failed to create disagreement';
-      if (typeof window !== 'undefined') {
-        window.alert(`Create failed: ${message}`);
-      }
+    } catch (err) {
+      const message = err?.response?.data?.message || err?.message || 'Failed to create disagreement.';
+      setError(message);
     } finally {
-      setSubmitting(false);
+      setIsSubmitting(false);
     }
   };
 
-  if (!isOpen) return null;
+  const handleClose = () => {
+    // Prevent closing the modal while a submission is in progress
+    if (!isSubmitting) {
+      onClose();
+    }
+  };
 
   return (
-    <Box position="fixed" top="0" right="0" bottom="0" left="0" zIndex={1000}>
-      {/* Backdrop */}
-      <Box position="absolute" top="0" right="0" bottom="0" left="0" bg="rgba(0,0,0,0.45)" onClick={onClose} />
+    <dialog ref={dialogRef} onClose={handleClose} className="bg-transparent backdrop:bg-black/50 p-0 rounded-xl w-full max-w-lg">
+      <div className="bg-white rounded-xl shadow-xl">
+        {/* We use a separate form element to handle submission */}
+        <form onSubmit={handleSubmit} className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-slate-800">Start a New Disagreement</h2>
+            {/* The close button is a simple, accessible button */}
+            <button
+              type="button"
+              onClick={handleClose}
+              className="text-2xl font-light text-slate-500 hover:text-slate-800"
+              aria-label="Close"
+            >
+              &times;
+            </button>
+          </div>
 
-      {/* Modal Panel */}
-      <Flex position="absolute" top="0" right="0" bottom="0" left="0" align="center" justify="center" p={4}>
-        <Box as="form" onSubmit={handleSubmit} bg="white" borderRadius="xl" boxShadow="xl" w="100%" maxW="lg" p={6}>
-          <Flex align="center" justify="space-between" mb={4}>
-            <Text as="h2" fontSize="xl" fontWeight="semibold">Start a New Disagreement</Text>
-            <Button variant="ghost" size="sm" onClick={onClose}>Close</Button>
-          </Flex>
-
-          <VStack align="stretch" spacing={4}>
-            {/* Title field */}
-            <VStack align="stretch" spacing={1}>
-              <Text fontWeight="medium">Title</Text>
-              <Input
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="disagreement-title" className="block text-slate-700 font-semibold mb-1">
+                Title
+              </label>
+              <input
+                id="disagreement-title"
+                type="text"
                 placeholder="e.g., Project Scope Discussion"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 required
+                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
-            </VStack>
+            </div>
+            {/* NOTE: The AI Role selector has been removed for now. It can be re-added here as a styled <select> when the backend API supports this feature. */}
+          </div>
 
-            {/* AI Role select */}
-            <VStack align="stretch" spacing={1}>
-              <Text fontWeight="medium">Select AI Role</Text>
-              <Box as="select" value={role} onChange={(e) => setRole(e.target.value)} required borderWidth="1px" borderRadius="md" p={2}>
-                <option value="Mediator">Mediator</option>
-                <option value="Fact-Finder">Fact-Finder</option>
-                <option value="Judge & Jury">Judge & Jury</option>
-              </Box>
-            </VStack>
-          </VStack>
+          {/* Inline error message provides a better UX than window.alert */}
+          {error && <p className="mt-3 text-center text-red-600 text-sm">{error}</p>}
 
-          <Flex justify="flex-end" gap={3} mt={6}>
-            <Button variant="ghost" onClick={onClose} disabled={submitting}>Cancel</Button>
-            <Button colorScheme="blue" type="submit" isDisabled={submitting} isLoading={submitting}>Create</Button>
-          </Flex>
-        </Box>
-      </Flex>
-    </Box>
+          <div className="flex justify-end gap-3 mt-6">
+            <button
+              type="button"
+              onClick={handleClose}
+              disabled={isSubmitting}
+              className="px-4 py-2 rounded-md border border-slate-300 text-slate-700 hover:bg-slate-50 text-lg disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="px-5 py-2 rounded-md bg-blue-600 text-white font-semibold shadow-sm hover:bg-blue-500 text-lg disabled:bg-blue-300 disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? 'Creating...' : 'Create'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </dialog>
   );
 }
 

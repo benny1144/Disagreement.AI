@@ -20,6 +20,7 @@ interface Message {
 interface Disagreement {
   text?: string
   messages: Message[]
+  publicInviteToken?: { token?: string; enabled?: boolean }
 }
 
 export default function ChatPage(): JSX.Element {
@@ -197,7 +198,12 @@ export default function ChatPage(): JSX.Element {
               </form>
 
               {/* Invite Modal */}
-              <InviteUserModal isOpen={isInviteOpen} onClose={onClose} disagreementId={id} />
+              <InviteUserModal
+                isOpen={isInviteOpen}
+                onClose={onClose}
+                disagreementId={id}
+                publicInviteToken={disagreement?.publicInviteToken?.token || ''}
+              />
             </>
           )}
         </section>

@@ -2,19 +2,18 @@ import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
-// CRITICAL FIX: Use the same robust API URL resolution as the rest of the application.
-// This ensures the component works in both development and production environments.
 const API_URL = import.meta.env.VITE_API_URL || '';
 const DISAGREEMENTS_API_BASE = `${API_URL}/api/disagreements`;
 
 function CreateDisagreementModal({ isOpen, onClose, onCreate }) {
   const [title, setTitle] = useState('');
+  const [description, setDescription] = useState(''); // NEW: State for the description
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
-  const dialogRef = useRef(null); // Ref to control the native dialog element
+  const dialogRef = useRef(null);
 
-  // Effect to programmatically control the dialog's visibility based on the isOpen prop
+  // Effect to control the dialog's visibility
   useEffect(() => {
     const dialogNode = dialogRef.current;
     if (isOpen && dialogNode && !dialogNode.open) {
@@ -24,10 +23,11 @@ function CreateDisagreementModal({ isOpen, onClose, onCreate }) {
     }
   }, [isOpen]);
 
-  // Effect to reset the form's state whenever the modal is opened
+  // Effect to reset the form's state when the modal opens
   useEffect(() => {
     if (isOpen) {
       setTitle('');
+      setDescription(''); // NEW: Reset description
       setError('');
       setIsSubmitting(false);
     }
@@ -37,18 +37,19 @@ function CreateDisagreementModal({ isOpen, onClose, onCreate }) {
     e.preventDefault();
     setError('');
     const trimmedTitle = title.trim();
+    const trimmedDescription = description.trim(); // NEW: Get trimmed description
 
-    if (!trimmedTitle) {
-      setError('Please enter a title for your disagreement.');
+    // UPDATED: Validate both fields
+    if (!trimmedTitle || !trimmedDescription) {
+      setError('Please provide both a title and a description.');
       return;
     }
 
     let token = null;
     try {
-      const stored = localStorage.getItem('user');
-      if (stored) token = JSON.parse(stored)?.token;
+      token = JSON.parse(localStorage.getItem('user'))?.token;
     } catch {
-      // Ignore localStorage parsing errors
+      // Ignore errors
     }
 
     if (!token) {
@@ -58,22 +59,21 @@ function CreateDisagreementModal({ isOpen, onClose, onCreate }) {
 
     setIsSubmitting(true);
     try {
+      // UPDATED: Send the correct payload { title, description }
       const response = await axios.post(
         DISAGREEMENTS_API_BASE,
-        { text: trimmedTitle },
+        { title: trimmedTitle, description: trimmedDescription },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
       const createdDisagreement = response.data;
 
-      // Notify the parent Dashboard component so it can update its list
       if (typeof onCreate === 'function') {
         onCreate({ created: createdDisagreement });
       }
 
-      onClose(); // Close the modal on success
+      onClose();
 
-      // Navigate to the newly created disagreement page
       if (createdDisagreement?._id) {
         navigate(`/disagreement/${createdDisagreement._id}`);
       }
@@ -86,7 +86,6 @@ function CreateDisagreementModal({ isOpen, onClose, onCreate }) {
   };
 
   const handleClose = () => {
-    // Prevent closing the modal while a submission is in progress
     if (!isSubmitting) {
       onClose();
     }
@@ -95,11 +94,9 @@ function CreateDisagreementModal({ isOpen, onClose, onCreate }) {
   return (
     <dialog ref={dialogRef} onClose={handleClose} className="bg-transparent backdrop:bg-black/50 p-0 rounded-xl w-full max-w-lg">
       <div className="bg-white rounded-xl shadow-xl">
-        {/* We use a separate form element to handle submission */}
         <form onSubmit={handleSubmit} className="p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold text-slate-800">Start a New Disagreement</h2>
-            {/* The close button is a simple, accessible button */}
             <button
               type="button"
               onClick={handleClose}
@@ -111,6 +108,7 @@ function CreateDisagreementModal({ isOpen, onClose, onCreate }) {
           </div>
 
           <div className="space-y-4">
+            {/* Title Field */}
             <div>
               <label htmlFor="disagreement-title" className="block text-slate-700 font-semibold mb-1">
                 Title
@@ -122,13 +120,27 @@ function CreateDisagreementModal({ isOpen, onClose, onCreate }) {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 required
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
-            {/* NOTE: The AI Role selector has been removed for now. It can be re-added here as a styled <select> when the backend API supports this feature. */}
+
+            {/* NEW: Description Field */}
+            <div>
+              <label htmlFor="disagreement-description" className="block text-slate-700 font-semibold mb-1">
+                Brief Description
+              </label>
+              <textarea
+                id="disagreement-description"
+                placeholder="A 1-2 sentence, neutral summary of the issue."
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                required
+                rows="3"
+                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
           </div>
 
-          {/* Inline error message provides a better UX than window.alert */}
           {error && <p className="mt-3 text-center text-red-600 text-sm">{error}</p>}
 
           <div className="flex justify-end gap-3 mt-6">

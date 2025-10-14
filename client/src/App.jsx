@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Component, lazy, Suspense } from 'react';
+import Layout from './components/Layout.jsx';
 
 // --- (Step 1: Update the HomePage import to point to the new .tsx file) ---
 const HomePage = lazy(() => import('./pages/HomePage'));
@@ -45,7 +46,6 @@ function App() {
     return (
         <ErrorBoundary>
             <Router>
-                <div className="container">
                     {/* --- (Step 2: Replace Chakra spinner with a simple div for the loading fallback) --- */}
                     <Suspense fallback={
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '50vh' }}>
@@ -53,14 +53,18 @@ function App() {
                         </div>
                     }>
                         <Routes>
-                            <Route path='/' element={<HomePage />} />
-                            <Route path='/login' element={<LoginPage />} />
-                            <Route path='/register' element={<SignUpPage />} />
-                            <Route path='/dashboard' element={<DashboardPage />} />
-                            <Route path='/disagreement/:id' element={<ChatPage />} />
+                          {/* All pages now render inside the Layout component */}
+                          <Route path="/" element={<Layout />}>
+                            {/* The child routes' elements will be rendered by the <Outlet> in Layout.jsx */}
+                            <Route index element={<HomePage />} />
+                            <Route path="login" element={<LoginPage />} />
+                            <Route path="register" element={<SignUpPage />} />
+                            <Route path="dashboard" element={<DashboardPage />} />
+                            <Route path="disagreement/:id" element={<ChatPage />} />
+                            {/* Add future routes for Privacy, Terms, etc., here */}
+                          </Route>
                         </Routes>
                     </Suspense>
-                </div>
             </Router>
         </ErrorBoundary>
     );

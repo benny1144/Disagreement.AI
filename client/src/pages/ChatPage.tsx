@@ -18,7 +18,7 @@ interface Message {
 }
 
 interface Disagreement {
-  text?: string
+  title?: string
   messages: Message[]
   publicInviteToken?: { token?: string; enabled?: boolean }
 }
@@ -27,10 +27,11 @@ export default function ChatPage(): JSX.Element {
   const { id } = useParams()
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
-  const [disagreement, setDisagreement] = useState<Disagreement>({ text: '', messages: [] })
+  const [disagreement, setDisagreement] = useState<Disagreement>({ title: '', messages: [] })
   const [newMessage, setNewMessage] = useState('')
   const [isInviteOpen, setInviteOpen] = useState(false)
   const [showUpload, setShowUpload] = useState(false)
+  const uploadRef = useRef(null)
   const socketRef = useRef<Socket | null>(null)
 
   const currentUserId = (() => {
@@ -105,7 +106,19 @@ export default function ChatPage(): JSX.Element {
       socketRef.current = null
     }
   }, [id])
-
+  
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (uploadRef.current && !(uploadRef.current as any).contains(event.target)) {
+        setShowUpload(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [uploadRef])
+  
   const handleSendMessage = () => {
     const text = (newMessage || '').trim()
     if (!text) return
@@ -149,13 +162,16 @@ export default function ChatPage(): JSX.Element {
             <>
               {/* Header */}
               <div className="px-4 md:px-0 pt-4 md:pt-0 flex items-center justify-between">
-                <h2 className="text-xl font-bold text-slate-800">{disagreement.text || 'Disagreement'}</h2>
+                <div className="px-4 md:px-0 pt-4 md:pt-0">
+                  <h2 className="text-xl font-bold text-slate-800 truncate">{disagreement.title || 'Disagreement'}</h2>
+                  <p className="text-sm font-semibold text-blue-600">AI Mediator Mode</p>
+                </div>
                 <button
                   onClick={onOpen}
                   className="inline-flex items-center rounded-md bg-blue-600 text-white font-semibold shadow-sm hover:bg-blue-500 px-4 py-2 text-lg"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 mr-2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="23" x2="23" y1="8" y2="14"/><line x1="20" x2="26" y1="11" y2="11"/></svg>
-                  Invite Participant
+                  Invite participants
                 </button>
               </div>
 
@@ -199,7 +215,7 @@ export default function ChatPage(): JSX.Element {
                 }}
                 className="mt-2 px-4 md:px-0 pb-4 md:pb-0 flex items-center gap-2"
               >
-                <div className="relative group">
+                <div className="relative group" ref={uploadRef}>
                   <button
                     type="button"
                     onClick={() => setShowUpload(!showUpload)}
@@ -207,11 +223,11 @@ export default function ChatPage(): JSX.Element {
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6 text-slate-500"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>
                   </button>
-                  <div className="absolute bottom-full mb-2 hidden group-hover:block bg-slate-800 text-white text-xs rounded py-1 px-2">
+                  <div className="absolute bottom-full mb-2 hidden group-hover:block bg-slate-800 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
                     Add Files
                   </div>
                   {showUpload && (
-                    <div className="absolute bottom-full mb-2 bg-white border border-slate-200 rounded-lg shadow-lg p-2 flex items-center gap-2">
+                    <div className="absolute bottom-full mb-2 bg-white border border-slate-200 rounded-lg shadow-lg p-2 flex items-center gap-2 whitespace-nowrap">
                       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-slate-600"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.59a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
                       <span className="font-semibold text-slate-700">Upload files</span>
                     </div>

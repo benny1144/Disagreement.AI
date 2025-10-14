@@ -9,6 +9,7 @@ const SignUpPage = lazy(() => import('./pages/SignUpPage'));
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const ChatPage = lazy(() => import('./pages/ChatPage'));
 const InviteAcceptPage = lazy(() => import('./pages/InviteAcceptPage'));
+const ProfilePage = lazy(() => import('./pages/ProfilePage.jsx'));
 
 class ErrorBoundary extends Component {
     // ... (No changes needed in the ErrorBoundary component)
@@ -62,6 +63,7 @@ function App() {
                             <Route path="register" element={<SignUpPage />} />
                             <Route path="invite/:token" element={<InviteAcceptPage />} />
                             <Route path="dashboard" element={<DashboardPage />} />
+                            <Route path="profile" element={<ProfilePage />} />
                             <Route path="disagreement/:id" element={<ChatPage />} />
                             {/* Add future routes for Privacy, Terms, etc., here */}
                           </Route>

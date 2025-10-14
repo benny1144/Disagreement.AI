@@ -11,7 +11,7 @@ const API_URL = API_BASE ? `${API_BASE}/api` : '/api'
 
 interface Disagreement {
   _id: string
-  text?: string
+  title: string
 }
 
 export default function DashboardPage(): JSX.Element {
@@ -119,7 +119,7 @@ export default function DashboardPage(): JSX.Element {
                           to={`/disagreement/${d._id}`}
                           className="block border border-slate-200 rounded-lg p-4 hover:bg-slate-50 hover:shadow-md transition-all"
                         >
-                          <div className="text-base md:text-lg font-bold text-slate-800 truncate">{d.text || 'Untitled Disagreement'}</div>
+                          <div className="text-base md:text-lg font-bold text-slate-800 truncate">{d.title || 'Untitled Disagreement'}</div>
                           <div className="text-slate-600 mt-1 text-sm md:text-base">Participants: You</div>
                         </RouterLink>
                       </li>

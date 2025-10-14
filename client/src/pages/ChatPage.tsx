@@ -30,6 +30,7 @@ export default function ChatPage(): JSX.Element {
   const [disagreement, setDisagreement] = useState<Disagreement>({ text: '', messages: [] })
   const [newMessage, setNewMessage] = useState('')
   const [isInviteOpen, setInviteOpen] = useState(false)
+  const [showUpload, setShowUpload] = useState(false)
   const socketRef = useRef<Socket | null>(null)
 
   const currentUserId = (() => {
@@ -153,7 +154,8 @@ export default function ChatPage(): JSX.Element {
                   onClick={onOpen}
                   className="inline-flex items-center rounded-md bg-blue-600 text-white font-semibold shadow-sm hover:bg-blue-500 px-4 py-2 text-lg"
                 >
-                  Invite
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 mr-2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="23" x2="23" y1="8" y2="14"/><line x1="20" x2="26" y1="11" y2="11"/></svg>
+                  Invite Participant
                 </button>
               </div>
 
@@ -184,8 +186,8 @@ export default function ChatPage(): JSX.Element {
                 )}
               </div>
 
-              {/* Persistent legal disclaimer (sticky above input) */}
-              <div className="px-4 md:px-0 sticky bottom-20 md:bottom-24">
+              {/* Corrected legal disclaimer (now part of the static composer area) */}
+              <div className="px-4 md:px-0 pt-2">
                 <p className="text-sm italic text-slate-500">Please note: The AI does not provide legally binding advice.</p>
               </div>
 
@@ -197,6 +199,24 @@ export default function ChatPage(): JSX.Element {
                 }}
                 className="mt-2 px-4 md:px-0 pb-4 md:pb-0 flex items-center gap-2"
               >
+                <div className="relative group">
+                  <button
+                    type="button"
+                    onClick={() => setShowUpload(!showUpload)}
+                    className="p-2 rounded-full hover:bg-slate-100"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6 text-slate-500"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>
+                  </button>
+                  <div className="absolute bottom-full mb-2 hidden group-hover:block bg-slate-800 text-white text-xs rounded py-1 px-2">
+                    Add Files
+                  </div>
+                  {showUpload && (
+                    <div className="absolute bottom-full mb-2 bg-white border border-slate-200 rounded-lg shadow-lg p-2 flex items-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-slate-600"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.59a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                      <span className="font-semibold text-slate-700">Upload files</span>
+                    </div>
+                  )}
+                </div>
                 <input
                   className="flex-1 rounded-md border border-slate-300 px-3 py-2 text-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Type your message..."
@@ -208,6 +228,7 @@ export default function ChatPage(): JSX.Element {
                   className="inline-flex items-center rounded-md bg-blue-600 text-white font-semibold shadow-sm hover:bg-blue-500 px-4 py-2 text-lg"
                 >
                   Send
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 ml-2"><line x1="22" x2="11" y1="2" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                 </button>
               </form>
 

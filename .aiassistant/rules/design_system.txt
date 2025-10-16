@@ -52,7 +52,7 @@ The homepage follows a narrative flow designed to maximize user understanding an
 2.  **Hero Section:** Captures attention with the core value proposition ("From Conflict to Clarity") and a primary "Get Started for Free" CTA.
 3.  **Explainer Video Section:** A clean, focused section featuring the 90-second animated explainer video as its centerpiece. This is our primary educational tool.
 4.  **How It Works Section:** A simple 3-step visual graphic explaining the process: 1. State Your Case, 2. AI Mediates, 3. Reach Agreement.
-5.  **"Perfect For" (Use Cases) Section:** Displays the platform's versatility using a modern, tag-based UI to list target audiences (e.g., Freelancers, Landlords, Sports Teams). Headline: "Designed for Any Disagreement."
+5.  **"Perfect For" (Use Cases) Section:** Displays the platform's versatility using a modern, tag-based UI to list target audiences (e.g., Freelancers, Landlords, Sports Teams / High-Performance Teams). Headline: "Designed for Any Disagreement."
 6.  **Features Section:** A brief overview of key product features that support the value proposition (e.g., "Neutral AI Mediator," "Secure & Confidential," "Final Agreement Reports").
 7.  **Final CTA Section:** A large, clear, final call-to-action to encourage sign-ups before the footer. Headline: "Ready to find your resolution?"
 8.  **Global Footer**

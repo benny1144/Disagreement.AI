@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import axios from 'axios'
 import { io, Socket } from 'socket.io-client'
 import InviteUserModal from '../components/InviteUserModal.jsx'
+import { useAuth } from '../contexts/AuthContext'
 
 // Derive API base from environment; fallback to same-origin relative /api
 const envApi = typeof import.meta !== 'undefined' ? import.meta.env?.VITE_API_URL : undefined
@@ -17,10 +18,16 @@ interface Message {
   text: string
 }
 
+interface Participant {
+  user?: any
+  status?: 'active' | 'pending' | string
+}
+
 interface Disagreement {
   title?: string
   messages: Message[]
   publicInviteToken?: { token?: string; enabled?: boolean }
+  participants?: Participant[]
 }
 
 export default function ChatPage(): JSX.Element {
@@ -34,16 +41,8 @@ export default function ChatPage(): JSX.Element {
   const uploadRef = useRef(null)
   const socketRef = useRef<Socket | null>(null)
 
-  const currentUserId = (() => {
-    try {
-      const stored = localStorage.getItem('user')
-      if (!stored) return null
-      const user = JSON.parse(stored)
-      return user?._id || user?.id || null
-    } catch {
-      return null
-    }
-  })()
+  const { user, token } = useAuth()
+  const currentUserId = user?._id || (user as any)?.id || null
 
   const onOpen = () => setInviteOpen(true)
   const onClose = () => setInviteOpen(false)
@@ -53,15 +52,13 @@ export default function ChatPage(): JSX.Element {
       try {
         setIsLoading(true)
         setError('')
-        const stored = localStorage.getItem('user')
-        if (!stored) {
+        if (!token) {
           setError('Not authenticated')
           setIsLoading(false)
           return
         }
-        const user = JSON.parse(stored)
         const res = await axios.get(`${API_URL}/disagreements/${id}` , {
-          headers: { Authorization: `Bearer ${user.token}` },
+          headers: { Authorization: `Bearer ${token}` },
         })
         const data = res.data || {}
         data.messages = Array.isArray(data.messages) ? data.messages : []
@@ -78,7 +75,7 @@ export default function ChatPage(): JSX.Element {
     }
 
     if (id) fetchDisagreement()
-  }, [id])
+  }, [id, token])
 
   // Socket setup
   useEffect(() => {
@@ -128,6 +125,11 @@ export default function ChatPage(): JSX.Element {
     setNewMessage('')
   }
 
+  // Determine invite button label based on participants other than current user
+  const participantsList = Array.isArray((disagreement as any)?.participants) ? (disagreement as any).participants : []
+  const hasOtherParticipants = currentUserId ? participantsList.some((p: any) => String(p?.user?._id || p?.user) !== String(currentUserId)) : false
+  const inviteButtonText = hasOtherParticipants ? 'Manage Participants' : 'Invite Participants'
+
   return (
     <div className="min-h-screen bg-white font-sans px-4 md:px-8 py-4">
       <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] gap-0 md:gap-6 min-h-[calc(100vh-2rem)]">
@@ -171,7 +173,7 @@ export default function ChatPage(): JSX.Element {
                   className="inline-flex items-center rounded-md bg-blue-600 text-white font-semibold shadow-sm hover:bg-blue-500 px-4 py-2 text-lg"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 mr-2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="23" x2="23" y1="8" y2="14"/><line x1="20" x2="26" y1="11" y2="11"/></svg>
-                  Invite participants
+                  {inviteButtonText}
                 </button>
               </div>
 

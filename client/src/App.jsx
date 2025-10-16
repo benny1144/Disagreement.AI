@@ -1,6 +1,8 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Component, lazy, Suspense } from 'react';
 import Layout from './components/Layout.jsx';
+import { AuthProvider } from './contexts/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute.jsx';
 
 // --- (Step 1: Update the HomePage import to point to the new .tsx file) ---
 const HomePage = lazy(() => import('./pages/HomePage'));
@@ -9,7 +11,7 @@ const SignUpPage = lazy(() => import('./pages/SignUpPage'));
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const ChatPage = lazy(() => import('./pages/ChatPage'));
 const InviteAcceptPage = lazy(() => import('./pages/InviteAcceptPage'));
-const ProfilePage = lazy(() => import('./pages/ProfilePage.jsx'));
+const UserAccountPage = lazy(() => import('./pages/UserAccountPage.jsx'));
 
 class ErrorBoundary extends Component {
     // ... (No changes needed in the ErrorBoundary component)
@@ -47,29 +49,31 @@ class ErrorBoundary extends Component {
 function App() {
     return (
         <ErrorBoundary>
-            <Router>
-                    {/* --- (Step 2: Replace Chakra spinner with a simple div for the loading fallback) --- */}
-                    <Suspense fallback={
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '50vh' }}>
-                            <p>Loading...</p>
-                        </div>
-                    }>
-                        <Routes>
-                          {/* All pages now render inside the Layout component */}
-                          <Route path="/" element={<Layout />}>
-                            {/* The child routes' elements will be rendered by the <Outlet> in Layout.jsx */}
-                            <Route index element={<HomePage />} />
-                            <Route path="login" element={<LoginPage />} />
-                            <Route path="register" element={<SignUpPage />} />
-                            <Route path="invite/:token" element={<InviteAcceptPage />} />
-                            <Route path="dashboard" element={<DashboardPage />} />
-                            <Route path="profile" element={<ProfilePage />} />
-                            <Route path="disagreement/:id" element={<ChatPage />} />
-                            {/* Add future routes for Privacy, Terms, etc., here */}
-                          </Route>
-                        </Routes>
-                    </Suspense>
-            </Router>
+            <AuthProvider>
+                <Router>
+                        {/* --- (Step 2: Replace Chakra spinner with a simple div for the loading fallback) --- */}
+                        <Suspense fallback={
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '50vh' }}>
+                                <p>Loading...</p>
+                            </div>
+                        }>
+                            <Routes>
+                              {/* All pages now render inside the Layout component */}
+                              <Route path="/" element={<Layout />}>
+                                {/* The child routes' elements will be rendered by the <Outlet> in Layout.jsx */}
+                                <Route index element={<HomePage />} />
+                                <Route path="login" element={<LoginPage />} />
+                                <Route path="register" element={<SignUpPage />} />
+                                <Route path="invite/:token" element={<InviteAcceptPage />} />
+                                <Route path="dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+                                <Route path="profile" element={<ProtectedRoute><UserAccountPage /></ProtectedRoute>} />
+                                <Route path="disagreement/:id" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
+                                {/* Add future routes for Privacy, Terms, etc., here */}
+                              </Route>
+                            </Routes>
+                        </Suspense>
+                </Router>
+            </AuthProvider>
         </ErrorBoundary>
     );
 }

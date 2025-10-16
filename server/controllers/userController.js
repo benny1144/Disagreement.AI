@@ -74,6 +74,58 @@ const getMe = asyncHandler(async (req, res) => {
     res.status(200).json(req.user);
 });
 
+// @desc    Change password for logged-in user
+// @route   PUT /api/users/change-password
+// @access  Private
+const changePassword = asyncHandler(async (req, res) => {
+    const { currentPassword, newPassword } = req.body || {};
+
+    if (!currentPassword || !newPassword) {
+        res.status(400);
+        throw new Error('Current password and new password are required');
+    }
+
+    if (String(newPassword).length < 8) {
+        res.status(400);
+        throw new Error('New password must be at least 8 characters long');
+    }
+
+    // Need full user with password hash
+    const user = await User.findById(req.user.id);
+    if (!user) {
+        res.status(404);
+        throw new Error('User not found');
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+        res.status(400);
+        throw new Error('Current password is incorrect');
+    }
+
+    // Hash and set new password
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
+    await user.save();
+
+    res.status(200).json({ message: 'Password updated successfully' });
+});
+
+// @desc    Delete current user account
+// @route   DELETE /api/users/me
+// @access  Private
+const deleteMe = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const user = await User.findById(userId);
+    if (!user) {
+        res.status(404);
+        throw new Error('User not found');
+    }
+
+    await User.deleteOne({ _id: userId });
+    res.status(200).json({ message: 'Account deleted successfully' });
+});
+
 // Generate JWT
 const generateToken = (id) => {
     const secret = process.env.JWT_SECRET || process.env.SECRET_KEY;
@@ -89,5 +141,7 @@ const generateToken = (id) => {
 export {
     registerUser,
     loginUser,
-    getMe
+    getMe,
+    changePassword,
+    deleteMe
 };

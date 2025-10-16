@@ -25,9 +25,7 @@ export default function SignUpPage(): JSX.Element {
 
     if (password !== password2) {
       setIsSubmitting(false)
-      if (typeof window !== 'undefined') {
-        window.alert('Registration Failed: Passwords do not match.')
-      }
+      setSubmitError('Passwords do not match.')
       return
     }
 
@@ -36,9 +34,6 @@ export default function SignUpPage(): JSX.Element {
       const user = await authService.register(userData)
       if (user) {
         console.log('Registration successful!')
-        if (typeof window !== 'undefined') {
-          window.alert('Account Created: You have been successfully registered.')
-        }
         navigate('/dashboard')
       }
     } catch (error: any) {
@@ -48,9 +43,6 @@ export default function SignUpPage(): JSX.Element {
         (error && error.message) ||
         error?.toString()
       setSubmitError(message || 'Network error. Please try again later.')
-      if (typeof window !== 'undefined') {
-        window.alert(`Registration Failed: ${message}`)
-      }
     } finally {
       setIsSubmitting(false)
     }

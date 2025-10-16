@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, Link as RouterLink } from 'react-router-dom'
 import axios from 'axios'
-import authService from '../features/auth/authService.js'
+import { useAuth } from '../contexts/AuthContext'
 import CreateDisagreementModal from '../components/CreateDisagreementModal.jsx'
 
 // Derive API base from environment; fallback to same-origin relative /api
@@ -23,33 +23,22 @@ export default function DashboardPage(): JSX.Element {
 
   const onOpen = () => setModalOpen(true)
   const onClose = () => setModalOpen(false)
+  const { token, logout } = useAuth()
 
-  // Auth guard
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem('user')
-      if (!stored) {
-        navigate('/login', { replace: true })
-        return
-      }
-      JSON.parse(stored)
-    } catch {
-      localStorage.removeItem('user')
-      navigate('/login', { replace: true })
-    }
-  }, [navigate])
 
   // Fetch disagreements
   useEffect(() => {
     const fetchData = async () => {
-      const stored = localStorage.getItem('user')
-      if (!stored) return
-      const user = JSON.parse(stored)
+      if (!token) {
+        setIsLoading(false)
+        setDisagreements([])
+        return
+      }
       try {
         setIsLoading(true)
         setError('')
         const res = await axios.get(`${API_URL}/disagreements`, {
-          headers: { Authorization: `Bearer ${user.token}` },
+          headers: { Authorization: `Bearer ${token}` },
         })
         setDisagreements(Array.isArray(res.data) ? res.data : [])
       } catch (err: any) {
@@ -64,10 +53,10 @@ export default function DashboardPage(): JSX.Element {
     }
 
     fetchData()
-  }, [])
+  }, [token])
 
   const handleLogout = () => {
-    authService.logout()
+    logout()
     navigate('/login', { replace: true })
   }
 
@@ -100,9 +89,9 @@ export default function DashboardPage(): JSX.Element {
             <p className="text-red-600 font-semibold text-center">{error}</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-            {/* Active Disagreements (spans 2 cols) */}
-            <div className="md:col-span-2 bg-white rounded-2xl shadow p-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 auto-rows-[minmax(140px,auto)] gap-4 md:gap-6">
+            {/* Active Disagreements (Bento 2x2) */}
+            <div className="lg:col-span-2 lg:row-span-2 bg-white rounded-2xl shadow p-6">
               <h2 className="text-xl font-bold text-slate-800 mb-4">Active Disagreements</h2>
               {disagreements.length === 0 ? (
                 <div className="flex flex-col items-center justify-center text-slate-600 py-10">
@@ -134,8 +123,8 @@ export default function DashboardPage(): JSX.Element {
               )}
             </div>
 
-            {/* CTA Card */}
-            <div className="bg-white rounded-2xl shadow p-6 hover:shadow-xl transition-all cursor-pointer" onClick={onOpen}>
+            {/* CTA Card (Bento 1x1) */}
+            <div className="lg:col-span-1 lg:row-span-1 bg-white rounded-2xl shadow p-6 hover:shadow-xl transition-all cursor-pointer" onClick={onOpen}>
               <div className="flex flex-col gap-2">
                 <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center text-2xl" aria-hidden>+</div>
                 <h3 className="text-xl font-bold text-slate-800">New Disagreement</h3>
@@ -143,8 +132,8 @@ export default function DashboardPage(): JSX.Element {
               </div>
             </div>
 
-            {/* My Stats */}
-            <div className="bg-white rounded-2xl shadow p-6">
+            {/* My Stats (Bento 1x1) */}
+            <div className="lg:col-span-1 lg:row-span-1 bg-white rounded-2xl shadow p-6">
               <h3 className="text-xl font-bold text-slate-800 mb-4">My Stats</h3>
               <div className="flex gap-8 flex-wrap">
                 <div className="min-w-[140px]">
@@ -158,8 +147,8 @@ export default function DashboardPage(): JSX.Element {
               </div>
             </div>
 
-            {/* Recent Activity (spans 2 cols) */}
-            <div className="md:col-span-2 bg-white rounded-2xl shadow p-6">
+            {/* Recent Activity (Bento 2x1) */}
+            <div className="lg:col-span-2 lg:row-span-1 bg-white rounded-2xl shadow p-6">
               <h3 className="text-xl font-bold text-slate-800 mb-2">Recent Activity</h3>
               <p className="text-slate-600">Activity feed coming soon.</p>
             </div>

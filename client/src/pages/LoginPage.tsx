@@ -1,10 +1,13 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import authService from '../features/auth/authService.js'
+import { useAuth } from '../contexts/AuthContext'
 
 export default function LoginPage(): JSX.Element {
   const [formData, setFormData] = useState({ email: '', password: '' })
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState('')
   const navigate = useNavigate()
+  const { login } = useAuth()
 
   const { email, password } = formData
 
@@ -15,9 +18,12 @@ export default function LoginPage(): JSX.Element {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (isSubmitting) return
+    setSubmitError('')
+    setIsSubmitting(true)
     console.log(`Login attempt with email: ${email}`)
     try {
-      const user = await authService.login(formData)
+      const user = await login(formData)
       if (user) {
         console.log('Login successful!')
         navigate('/dashboard')
@@ -28,9 +34,9 @@ export default function LoginPage(): JSX.Element {
         (error && error.response && error.response.data && error.response.data.message) ||
         (error && error.message) ||
         error?.toString()
-      if (typeof window !== 'undefined') {
-        window.alert(`Login Failed: ${message}`)
-      }
+      setSubmitError(message || 'Login failed. Please try again.')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -69,10 +75,14 @@ export default function LoginPage(): JSX.Element {
 
         <button
           type="submit"
-          className="mt-6 w-full bg-blue-600 text-white font-semibold rounded-md shadow-sm hover:bg-blue-500 transition-colors py-2 text-lg"
+          disabled={isSubmitting}
+          className={`mt-6 w-full font-semibold rounded-md shadow-sm transition-colors py-2 text-lg ${isSubmitting ? 'bg-blue-300 cursor-not-allowed text-white' : 'bg-blue-600 hover:bg-blue-500 text-white'}`}
         >
-          Log In
+          {isSubmitting ? 'Logging in…' : 'Log In'}
         </button>
+        {submitError && (
+          <p className="mt-3 text-center text-red-600 text-sm">{submitError}</p>
+        )}
 
         <p className="mt-4 text-center text-sm text-slate-600">
           Don't have an account?{' '}

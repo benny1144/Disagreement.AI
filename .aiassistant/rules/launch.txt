@@ -1,65 +1,54 @@
-﻿Disagreement.AI: Final Project Roadmap (Competition Edition)
-Objective: Complete all Tier 1 and Tier 2 features as defined in the Business Plan (v8.0).
-Start Date: October 10, 2025
-Deadline: January 13, 2026
-Status: FINAL. This document supersedes all previous day-to-day plans.
+﻿Disagreement.AI: Final Project Roadmap (Competition Edition v2.1)
+Objective: Complete all Tier 1 and Tier 2 features as defined in the Business Plan (v8.2). Start Date: October 10, 2025 Deadline: January 13, 2026 Status: FINAL. This document supersedes all previous day-to-day plans.
+
 Phase 1: Tier 1 Finalization & MVP Feedback Launch (14 Days)
 (October 10 - October 29)
 This phase focuses on completing all remaining Tier 1 features and launching the platform to our "Founding Members" to begin the crucial feedback loop.
 Week 1 (Oct 13 - 17): Final Feature Implementation
-Day 1-2: Build and style all site footer link pages and the Founder's application page. Implement the "Contact Us" form.
-Day 3: Implement the core document upload feature for chat. For Tier 1, files will be securely stored and open in a new tab; AI analysis will be added in Phase 2.
-Day 4: Implement the backend logic to support up to 25 participants in a single disagreement.
-Day 5: Finalize the case closure logic, requiring mutual agreement from all parties to close a case for the MVP.
 Week 2 (Oct 20 - 24): The Invite System & Email Automation
-Day 6-8: Build the dynamic invite landing page, which must include the creator's name, a custom message, and a placeholder for the future AI-generated summary.
-Day 9-10: Write all system email copy (e.g., invites, confirmations) and implement the n8n workflows to make them functional. Create the initial Agreement Report email and PDF download option.
 Week 3 (Oct 27 - 29): Final Testing & MVP Launch
-Day 11-12: Perform final, end-to-end production testing on the complete Tier 1 feature set.
-Day 13: Launch the MVP to "Founding Members."
-Day 14: Activate the feedback collection system and begin monitoring user feedback.
+Scope Lock-in: To ensure deadline adherence, the following features are explicitly excluded from the Tier 1 scope and are deferred to later phases: Custom Agent Skills, Agent Flows, MCP Server Integration, SQL Agent, and Branding/Whitelabeling.
+
 Phase 2: Advanced AI/Backend Architecture (20 Days)
 (October 30 - November 26)
 This phase is dedicated to building the robust backend infrastructure required for our Tier 2 "Competition Winner" features, using FastAPI for our AI service.
 Week 4-5 (Oct 30 - Nov 7): Core AI Service & Data Foundations
-Build the new, scalable AI service using Python (FastAPI) and CrewAI.
-Set up and integrate a vector database (e.g., Pinecone) to serve as the foundation for the AI's long-term memory and "The Resolution Playbook" feature.
 Week 6-7 (Nov 10 - 21): "Glass Box" & Analyzer Backend
-Design and build the backend architecture for the "Glass Box" AI Decision Log.
-Build the backend logic for the "Agreement Analyzer," including document ingestion and pre-processing pipelines.
+New Task: Develop Custom Agent Skills (e.g., Chart Generation) and Agent Flows to build "The Glass Box" AI Decision Log and analytics dashboard.
+New Task: Provision a PostgreSQL database for the AI Decision Log and connect it via the SQL Agent skill for internal analytics.
 Week 8 (Nov 24 - 26): B2B & Commercial Foundations
-Design and build the backend API endpoints for the B2B Preventative Analytics Dashboard (v1).
-Build Backend for Usage-Based Billing System, including Stripe integration, to prepare for our February 1st commercial launch.
-Recurring Weekly Task (Starts this Phase):
-Review & Integrate Founder Feedback: A recurring task to analyze feedback from the MVP and integrate key insights into the ongoing Tier 2 development.
+New Addition: Lay the foundational groundwork for future integration of a Graph Database (Neo4j) to power the "Context Engine."
+Recurring Weekly Task: Review & Integrate Founder Feedback
+
 Phase 3: "Team Harmonizer" Vertical Development (15 Days)
 (November 27 - December 17)
 A dedicated phase to build our key proof-of-concept vertical. This will be a primary showcase piece for the competition.
 Week 9 (Nov 27 - Dec 3): Model & Integration
-Begin fine-tuning a specialized AI model for the "Team Harmonizer" vertical.
-Develop the initial Slack/Microsoft Teams integration PoC.
+Task: Develop Slack Integration Proof-of-Concept (POC) for Competition Video.
+Objective: Build a simple, non-production slash command that can be recorded for the final demo video to showcase our future integration capabilities.
 Week 10-11 (Dec 4 - 17): UI/UX & B2B Features
-Design and build the specific UI/UX for the Harmonizer.
-Implement the "anonymity engine" feature.
-Build the frontend for the B2B Analytics Dashboard (v1).
+
 Phase 4: Frontend Implementation & Final Polish (15 Days)
 (December 18 - January 8)
 This phase focuses on building the user-facing components for all Tier 2 features and preparing the application for submission.
 Week 12 (Dec 18 - 24): Core UI Implementation
-Build the frontend component for the AI Decision Log within the chat interface.
-Upgrade the document upload feature to connect with the "Agreement Analyzer" backend.
-Build the UI for the "Agreement Analyzer."
 Week 13 (Dec 29 - Jan 2): Final Integration & Code Freeze
-Integrate all Tier 2 backend services with the frontend components.
-Perform a full UX/UI polish across the entire application.
 CODE FREEZE: No new features will be added after this point.
 Week 14 (Jan 5 - 8): Rigorous Testing & Bug Squashing
-Conduct comprehensive, end-to-end testing of the complete Tier 1 and Tier 2 feature set.
-Dedicated bug squashing and performance optimization.
-Phase 5: Competition Submission & Buffer (3 Days)
+
+Phase 5: Competition Submission Production (5 Days)
 (January 9 - January 13)
-Day 1-2 (Jan 9 - 12): Final Preparations
-Prepare all documentation, videos, and materials for the AI.gov Presidential Challenge submission.
-Final deployment to production.
-Day 3 (Jan 13): TIER 2 COMPLETE & SUBMISSION DEADLINE MET.
+This final phase is a dedicated production sprint focused exclusively on creating the polished assets required for a winning submission.
+Day 1-2 (Jan 9 - 10): Narrative & PDF Production
+Task: Write, design, and finalize the 10-page submission PDF based on the approved "Winning Narrative."
+Day 1-3 (Jan 9 - 12): Demo Video Production
+Task: Script, record, edit, and finalize the 4-minute video demonstration, including the Slack POC footage.
+Day 3 (Jan 12): Final Asset Review & Deployment
+Task: Conduct a final review of all submission materials (PDF, video link, and application) and perform the final deployment to production.
+Day 4 (Jan 13): TIER 2 COMPLETE & SUBMISSION DEADLINE MET.
+
+Tier 3 & Commercial Engine Roadmap (Post-Competition)
+The following features are formally planned for development after the competition to drive commercialization and market leadership.
+Whitelabeling Capabilities: Implement branding and customization features for the "Team Harmonizer" B2B product.
+Browser Extension: Develop a browser extension for in-context dispute mediation to expand the product ecosystem.
 

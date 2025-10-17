@@ -9,13 +9,13 @@ function Footer() {
         <nav aria-label="Footer Navigation">
           <ul className="flex gap-6">
             <li>
-              <Link to="/" className="hover:text-slate-800">Home</Link>
+              <Link to={{ pathname: '/privacy' }} className="hover:text-slate-800">Privacy</Link>
             </li>
             <li>
-              <Link to="/privacy" className="hover:text-slate-800">Privacy</Link>
+              <Link to={{ pathname: '/terms' }} className="hover:text-slate-800">Terms</Link>
             </li>
             <li>
-              <Link to="/terms" className="hover:text-slate-800">Terms</Link>
+              <Link to={{ pathname: '/contact' }} className="hover:text-slate-800">Contact Us</Link>
             </li>
           </ul>
         </nav>

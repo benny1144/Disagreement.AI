@@ -7,7 +7,7 @@ import { HeroSection } from "@/components/landing/HeroSection";
 import { GuaranteeSection } from "@/components/landing/GuaranteeSection";
 import { HowItWorksSection } from "@/components/landing/HowItWorksSection";
 import { ProofOfConceptSection } from "@/components/landing/ProofOfConceptSection";
-import { ContactFormSection } from "@/components/landing/ContactFormSection";
+import ContactForm from "../components/ContactForm.jsx";
 
 // This is our new "Coming Soon" homepage component
 export default function HomePage() {
@@ -20,7 +20,7 @@ export default function HomePage() {
             <GuaranteeSection />
             <HowItWorksSection />
             <ProofOfConceptSection />
-            <ContactFormSection />
+            <ContactForm />
         </main>
     );
 }

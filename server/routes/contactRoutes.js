@@ -2,6 +2,7 @@
 
 import express from 'express';
 import fetch from 'node-fetch';
+import { notifyTeam } from '../controllers/contactController.js'
 
 const router = express.Router();
 
@@ -33,7 +34,7 @@ function toTestUrlIfNeeded(url) {
 }
 
 // Defines the endpoint at POST /api/contact
-router.post('/contact', async (req, res) => {
+router.post('/contact', notifyTeam, async (req, res) => {
     const { fullName, email, message } = req.body;
 
     // Webhook URL from env if provided; otherwise fallback to the new, clean URL.

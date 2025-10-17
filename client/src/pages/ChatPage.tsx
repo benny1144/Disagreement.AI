@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import axios from 'axios'
 import { io, Socket } from 'socket.io-client'
 import InviteUserModal from '../components/InviteUserModal.jsx'
+import InvitationManager from '../components/InvitationManager.jsx'
 import { useAuth } from '../contexts/AuthContext'
 
 // Derive API base from environment; fallback to same-origin relative /api
@@ -36,7 +37,8 @@ export default function ChatPage(): JSX.Element {
   const [error, setError] = useState('')
   const [disagreement, setDisagreement] = useState<Disagreement>({ title: '', messages: [] })
   const [newMessage, setNewMessage] = useState('')
-  const [isInviteOpen, setInviteOpen] = useState(false)
+  const [isInviteModalOpen, setInviteModalOpen] = useState(false)
+  const [isManagerModalOpen, setManagerModalOpen] = useState(false)
   const [showUpload, setShowUpload] = useState(false)
   const uploadRef = useRef(null)
   const socketRef = useRef<Socket | null>(null)
@@ -44,8 +46,10 @@ export default function ChatPage(): JSX.Element {
   const { user, token } = useAuth()
   const currentUserId = user?._id || (user as any)?.id || null
 
-  const onOpen = () => setInviteOpen(true)
-  const onClose = () => setInviteOpen(false)
+  const openInviteModal = () => setInviteModalOpen(true)
+  const closeInviteModal = () => setInviteModalOpen(false)
+  const openManagerModal = () => setManagerModalOpen(true)
+  const closeManagerModal = () => setManagerModalOpen(false)
 
   useEffect(() => {
     const fetchDisagreement = async () => {
@@ -125,10 +129,10 @@ export default function ChatPage(): JSX.Element {
     setNewMessage('')
   }
 
-  // Determine invite button label based on participants other than current user
+  // Determine if current user is the creator (assume first participant is the creator for now)
   const participantsList = Array.isArray((disagreement as any)?.participants) ? (disagreement as any).participants : []
-  const hasOtherParticipants = currentUserId ? participantsList.some((p: any) => String(p?.user?._id || p?.user) !== String(currentUserId)) : false
-  const inviteButtonText = hasOtherParticipants ? 'Manage Participants' : 'Invite Participants'
+  const creatorUserId = participantsList.length > 0 ? (participantsList[0]?.user?._id || participantsList[0]?.user) : null
+  const isCreator = currentUserId && creatorUserId ? String(currentUserId) === String(creatorUserId) : false
 
   return (
     <div className="min-h-screen bg-white font-sans px-4 md:px-8 py-4">
@@ -168,13 +172,24 @@ export default function ChatPage(): JSX.Element {
                   <h2 className="text-xl font-bold text-slate-800 truncate">{disagreement.title || 'Disagreement'}</h2>
                   <p className="text-sm font-semibold text-blue-600">AI Mediator Mode</p>
                 </div>
-                <button
-                  onClick={onOpen}
-                  className="inline-flex items-center rounded-md bg-blue-600 text-white font-semibold shadow-sm hover:bg-blue-500 px-4 py-2 text-lg"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 mr-2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="23" x2="23" y1="8" y2="14"/><line x1="20" x2="26" y1="11" y2="11"/></svg>
-                  {inviteButtonText}
-                </button>
+                {isCreator && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={openInviteModal}
+                      className="inline-flex items-center rounded-md bg-blue-600 text-white font-semibold shadow-sm hover:bg-blue-500 px-4 py-2 text-lg"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 mr-2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="23" x2="23" y1="8" y2="14"/><line x1="20" x2="26" y1="11" y2="11"/></svg>
+                      Invite
+                    </button>
+                    <button
+                      onClick={openManagerModal}
+                      className="inline-flex items-center rounded-md bg-slate-700 text-white font-semibold shadow-sm hover:bg-slate-600 px-4 py-2 text-lg"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 mr-2"><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><circle cx="3" cy="6" r="1"/><circle cx="3" cy="12" r="1"/><circle cx="3" cy="18" r="1"/></svg>
+                      Manage
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Messages */}
@@ -250,12 +265,18 @@ export default function ChatPage(): JSX.Element {
                 </button>
               </form>
 
-              {/* Invite Modal */}
+              {/* Invitation Modals */}
               <InviteUserModal
-                isOpen={isInviteOpen}
-                onClose={onClose}
+                isOpen={isInviteModalOpen}
+                onClose={closeInviteModal}
                 disagreementId={id}
                 publicInviteToken={disagreement?.publicInviteToken?.token || ''}
+              />
+              <InvitationManager
+                isOpen={isManagerModalOpen}
+                onClose={closeManagerModal}
+                disagreement={disagreement as any}
+                onInviteNew={openInviteModal}
               />
             </>
           )}

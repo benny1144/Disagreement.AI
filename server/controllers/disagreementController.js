@@ -3,6 +3,7 @@ import Disagreement from '../models/disagreementModel.js';
 import User from '../models/userModel.js';
 import crypto from 'crypto';
 import nodemailer from 'nodemailer';
+import bcrypt from 'bcryptjs';
 
 // Helper function to check if a user is an active participant
 const isUserActiveParticipant = (disagreement, userId) => {
@@ -43,7 +44,8 @@ const createDisagreement = asyncHandler(async (req, res) => {
 const getDisagreement = asyncHandler(async (req, res) => {
     const disagreement = await Disagreement.findById(req.params.id)
         .populate('creator', 'name')
-        .populate('participants.user', 'name');
+        .populate('participants.user', 'name email')
+        .populate('pendingInvitations', 'name email');
 
     if (!disagreement) {
         res.status(404);
@@ -128,8 +130,13 @@ const acceptInvite = asyncHandler(async (req, res) => {
     } 
     // SCENARIO 2: Public Invite (Untrusted, Requires Approval)
     else {
-        // Add user as pending
-        disagreement.participants.push({ user: userToJoin.id, status: 'pending' });
+        // Public invite: queue for creator approval via pendingInvitations
+        const alreadyPending = Array.isArray(disagreement.pendingInvitations) && disagreement.pendingInvitations.some(u => u.equals(userToJoin.id));
+        const alreadyParticipant = disagreement.participants.some(p => p.user.equals(userToJoin.id));
+        if (!alreadyPending && !alreadyParticipant) {
+            if (!Array.isArray(disagreement.pendingInvitations)) disagreement.pendingInvitations = [];
+            disagreement.pendingInvitations.push(userToJoin.id);
+        }
     }
 
     await disagreement.save();
@@ -140,13 +147,13 @@ const acceptInvite = asyncHandler(async (req, res) => {
 // @route   POST /api/disagreements/:id/invite
 // @access  Private
 const createDirectInvite = asyncHandler(async (req, res) => {
-    const { invites, customMessage } = req.body; // invites is an array of { email, name }
-    if (!invites || !Array.isArray(invites) || invites.length === 0) {
+    const { invites, customMessage } = req.body || {}; // invites is an array of { email, name }
+    if (!Array.isArray(invites) || invites.length === 0) {
         res.status(400);
         throw new Error('Please provide at least one email to invite.');
     }
 
-    const disagreement = await Disagreement.findById(req.params.id).populate('creator', 'name');
+    const disagreement = await Disagreement.findById(req.params.id).populate('creator', 'name email');
 
     if (!disagreement) {
         res.status(404);
@@ -159,53 +166,97 @@ const createDirectInvite = asyncHandler(async (req, res) => {
         throw new Error('Not authorized to send invites');
     }
 
-    // Check for SMTP configuration
-    const { SMTP_HOST, SMTP_USER, SMTP_PASS, SMTP_PORT, EMAIL_FROM, CLIENT_URL } = process.env;
-    if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
-        res.status(500);
-        throw new Error('Email service is not configured on the server.');
+    // Delivery configuration
+    const { SMTP_HOST, SMTP_USER, SMTP_PASS, SMTP_PORT, EMAIL_FROM, CLIENT_URL, N8N_WEBHOOK_INVITE_URL } = process.env;
+    const useSmtp = !!(SMTP_HOST && SMTP_USER && SMTP_PASS);
+    const useWebhook = !!N8N_WEBHOOK_INVITE_URL;
+
+    let transporter;
+    if (useSmtp) {
+        transporter = nodemailer.createTransport({
+            host: SMTP_HOST,
+            port: Number(SMTP_PORT || 587),
+            secure: Number(SMTP_PORT) === 465,
+            auth: { user: SMTP_USER, pass: SMTP_PASS },
+        });
     }
-    
-    const transporter = nodemailer.createTransport({
-        host: SMTP_HOST,
-        port: Number(SMTP_PORT || 587),
-        secure: Number(SMTP_PORT) === 465,
-        auth: { user: SMTP_USER, pass: SMTP_PASS },
-    });
+
+    if (!useSmtp && !useWebhook) {
+        res.status(500);
+        throw new Error('No invitation delivery method configured (SMTP or N8N).');
+    }
 
     const inviterName = disagreement.creator.name;
+    const baseClient = CLIENT_URL || 'http://localhost:5173';
     const sentInvites = [];
 
     for (const invite of invites) {
+        const email = String(invite.email || '').toLowerCase().trim();
+        const name = invite.name || (email ? email.split('@')[0] : '') || 'Invited User';
+        if (!email) continue;
+
+        // Find or create user stub
+        let user = await User.findOne({ email });
+        if (!user) {
+            const salt = await bcrypt.genSalt(10);
+            const hashedPassword = await bcrypt.hash(crypto.randomBytes(12).toString('hex'), salt);
+            user = await User.create({ name, email, password: hashedPassword });
+        }
+
+        // Add directly to participants as active (dedupe)
+        if (!disagreement.participants.some(p => p.user.equals(user._id))) {
+            disagreement.participants.push({ user: user._id, status: 'active' });
+        }
+
+        // Create a direct invite token for email convenience
         const token = crypto.randomBytes(20).toString('hex');
-        disagreement.directInvites.push({
-            email: invite.email,
-            token: token,
-            customMessage: customMessage
-        });
+        disagreement.directInvites.push({ email, token, customMessage });
 
-        const joinLink = `${CLIENT_URL || 'http://localhost:5173'}/invite/${token}`;
-        const subject = `${inviterName} has invited you to a disagreement`;
-        
-        // Simple but effective email template
-        const htmlBody = `
-            <p>Hi ${invite.name || ''},</p>
-            <p>${inviterName} has invited you to join a disagreement titled: "${disagreement.title}".</p>
-            ${customMessage ? `<p>They added the following message:</p><blockquote>${customMessage}</blockquote>` : ''}
-            <p><a href="${joinLink}">Click here to view the invitation</a></p>
-        `;
+        // Send SMTP email (optional)
+        if (useSmtp) {
+            const joinLink = `${baseClient}/invite/${token}`;
+            const subject = `${inviterName} has invited you to a disagreement`;
+            const htmlBody = `
+                <p>Hi ${name},</p>
+                <p>${inviterName} has invited you to join a disagreement titled: "${disagreement.title}".</p>
+                ${customMessage ? `<p>They added the following message:</p><blockquote>${customMessage}</blockquote>` : ''}
+                <p><a href="${joinLink}">Click here to view the invitation</a></p>
+            `;
 
-        await transporter.sendMail({
-            from: EMAIL_FROM,
-            to: invite.email,
-            subject: subject,
-            html: htmlBody,
-        });
-        sentInvites.push(invite.email);
+            await transporter.sendMail({
+                from: EMAIL_FROM,
+                to: email,
+                subject: subject,
+                html: htmlBody,
+            });
+        }
+
+        sentInvites.push(email);
     }
 
     await disagreement.save();
-    res.status(200).json({ message: `Successfully sent invites to: ${sentInvites.join(', ')}` });
+
+    // Trigger n8n webhook (optional)
+    if (useWebhook) {
+        try {
+            await fetch(N8N_WEBHOOK_INVITE_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    disagreementId: String(disagreement._id),
+                    title: disagreement.title,
+                    inviterName,
+                    invites: invites.map(i => ({ email: String(i.email || '').toLowerCase().trim(), name: i.name || null })),
+                    customMessage: customMessage || null,
+                    clientBaseUrl: baseClient,
+                }),
+            });
+        } catch (err) {
+            console.error('Failed to trigger n8n webhook:', err?.message || err);
+        }
+    }
+
+    res.status(200).json({ message: `Invites processed: ${sentInvites.join(', ')}` });
 });
 
 // @desc    Manage a participant (approve/deny/remove)
@@ -256,6 +307,79 @@ const manageParticipant = asyncHandler(async (req, res) => {
 // For now, let's export the core functions needed for the invite system.
 // NOTE: The old `inviteUser` function is now replaced by `createDirectInvite`.
 
+// New: Approve/Deny pending invitations
+const approveInvitation = asyncHandler(async (req, res) => {
+    const { userId } = req.body || {};
+    if (!userId) {
+        res.status(400);
+        throw new Error('userId is required');
+    }
+
+    const disagreement = await Disagreement.findById(req.params.id);
+    if (!disagreement) {
+        res.status(404);
+        throw new Error('Disagreement not found');
+    }
+
+    // Only creator can approve
+    if (!disagreement.creator.equals(req.user.id)) {
+        res.status(401);
+        throw new Error('Not authorized to approve invitations');
+    }
+
+    // Remove from pendingInvitations
+    if (Array.isArray(disagreement.pendingInvitations)) {
+        disagreement.pendingInvitations = disagreement.pendingInvitations.filter(u => !u.equals(userId));
+    } else {
+        disagreement.pendingInvitations = [];
+    }
+
+    // Add to participants as active if not already there
+    if (!disagreement.participants.some(p => p.user.equals(userId))) {
+        disagreement.participants.push({ user: userId, status: 'active' });
+    }
+
+    await disagreement.save();
+    const updated = await Disagreement.findById(req.params.id)
+        .populate('creator', 'name')
+        .populate('participants.user', 'name email')
+        .populate('pendingInvitations', 'name email');
+    res.status(200).json(updated);
+});
+
+const denyInvitation = asyncHandler(async (req, res) => {
+    const { userId } = req.body || {};
+    if (!userId) {
+        res.status(400);
+        throw new Error('userId is required');
+    }
+
+    const disagreement = await Disagreement.findById(req.params.id);
+    if (!disagreement) {
+        res.status(404);
+        throw new Error('Disagreement not found');
+    }
+
+    // Only creator can deny
+    if (!disagreement.creator.equals(req.user.id)) {
+        res.status(401);
+        throw new Error('Not authorized to deny invitations');
+    }
+
+    if (Array.isArray(disagreement.pendingInvitations)) {
+        disagreement.pendingInvitations = disagreement.pendingInvitations.filter(u => !u.equals(userId));
+    } else {
+        disagreement.pendingInvitations = [];
+    }
+
+    await disagreement.save();
+    const updated = await Disagreement.findById(req.params.id)
+        .populate('creator', 'name')
+        .populate('participants.user', 'name email')
+        .populate('pendingInvitations', 'name email');
+    res.status(200).json(updated);
+});
+
 export {
     getDisagreements,
     createDisagreement,
@@ -264,6 +388,8 @@ export {
     getInviteDetails,
     acceptInvite,
     manageParticipant,
+    approveInvitation,
+    denyInvitation,
     // Keep existing functions, but ensure they are exported if still used.
     // updateDisagreement, deleteDisagreement, processDisagreement
 };

@@ -10,7 +10,9 @@ import {
     createDirectInvite,
     getInviteDetails,
     acceptInvite,
-    manageParticipant
+    manageParticipant,
+    approveInvitation,
+    denyInvitation
 } from '../controllers/disagreementController.js'; // Added .js
 import { protect } from '../middleware/authMiddleware.js'; // Added .js
 
@@ -26,6 +28,10 @@ router.route('/')
 
 // Participant management (creator only, enforced in controller)
 router.put('/:id/participants', protect, manageParticipant);
+
+// Approval/Deny for pending invitations (creator only)
+router.post('/:id/invitations/approve', protect, approveInvitation);
+router.post('/:id/invitations/deny', protect, denyInvitation);
 
 // Direct invites (creator only)
 router.post('/:id/invite', protect, createDirectInvite);

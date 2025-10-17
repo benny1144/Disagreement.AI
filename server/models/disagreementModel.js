@@ -48,7 +48,11 @@ const disagreementSchema = mongoose.Schema({
         required: true,
         ref: 'User',
     },
+    // Active participants with status
     participants: [participantSchema],
+    // Users who joined via public link and await creator approval
+    pendingInvitations: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    // Direct email invites (token-based)
     directInvites: [directInviteSchema],
     publicInviteToken: { // The single, shareable link token
         token: { type: String, unique: true, sparse: true },

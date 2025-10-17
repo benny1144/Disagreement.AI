@@ -1,5 +1,6 @@
 import asyncHandler from 'express-async-handler'
-import { sendContactFormEmail } from '../../services/emailService.js'
+import emailService from '../../services/emailService.js'
+const { sendContactFormEmail } = emailService
 
 // Middleware: validate and notify team via email; continue to next handler
 export const notifyTeam = asyncHandler(async (req, _res, next) => {

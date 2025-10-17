@@ -2,9 +2,9 @@ import React from 'react'
 import { Resend } from 'resend'
 // Note: templates remain in the repo root under /emails; since Render rootDir is ./server,
 // these relative paths go up one level to reach them.
-import ContactFormEmail from '../../emails/ContactFormEmail.js'
-import WelcomeEmail from '../../emails/WelcomeEmail.js'
-import DirectInviteEmail from '../../emails/DirectInviteEmail.js'
+import ContactFormEmail from '../emails/ContactFormEmail.js'
+import WelcomeEmail from '../emails/WelcomeEmail.js'
+import DirectInviteEmail from '../emails/DirectInviteEmail.js'
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 

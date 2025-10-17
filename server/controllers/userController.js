@@ -2,6 +2,8 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import asyncHandler from 'express-async-handler';
 import User from '../models/userModel.js';
+import emailService from '../../services/emailService.js';
+const { sendWelcomeEmail } = emailService;
 
 // @desc    Register new user
 // @route   POST /api/users/register
@@ -33,6 +35,11 @@ const registerUser = asyncHandler(async (req, res) => {
     });
 
     if (user) {
+        try {
+            await sendWelcomeEmail(user.email, user.name);
+        } catch (e) {
+            console.error('Failed to send welcome email:', e?.message || e);
+        }
         res.status(201).json({
             _id: user.id,
             name: user.name,

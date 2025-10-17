@@ -2,8 +2,9 @@ import asyncHandler from 'express-async-handler';
 import Disagreement from '../models/disagreementModel.js';
 import User from '../models/userModel.js';
 import crypto from 'crypto';
-import nodemailer from 'nodemailer';
 import bcrypt from 'bcryptjs';
+import emailService from '../../services/emailService.js';
+const { sendDirectInviteEmail } = emailService;
 
 // Helper function to check if a user is an active participant
 const isUserActiveParticipant = (disagreement, userId) => {
@@ -166,26 +167,7 @@ const createDirectInvite = asyncHandler(async (req, res) => {
         throw new Error('Not authorized to send invites');
     }
 
-    // Delivery configuration
-    const { SMTP_HOST, SMTP_USER, SMTP_PASS, SMTP_PORT, EMAIL_FROM, CLIENT_URL, N8N_WEBHOOK_INVITE_URL } = process.env;
-    const useSmtp = !!(SMTP_HOST && SMTP_USER && SMTP_PASS);
-    const useWebhook = !!N8N_WEBHOOK_INVITE_URL;
-
-    let transporter;
-    if (useSmtp) {
-        transporter = nodemailer.createTransport({
-            host: SMTP_HOST,
-            port: Number(SMTP_PORT || 587),
-            secure: Number(SMTP_PORT) === 465,
-            auth: { user: SMTP_USER, pass: SMTP_PASS },
-        });
-    }
-
-    if (!useSmtp && !useWebhook) {
-        res.status(500);
-        throw new Error('No invitation delivery method configured (SMTP or N8N).');
-    }
-
+    const { CLIENT_URL } = process.env;
     const inviterName = disagreement.creator.name;
     const baseClient = CLIENT_URL || 'http://localhost:5173';
     const sentInvites = [];
@@ -212,23 +194,16 @@ const createDirectInvite = asyncHandler(async (req, res) => {
         const token = crypto.randomBytes(20).toString('hex');
         disagreement.directInvites.push({ email, token, customMessage });
 
-        // Send SMTP email (optional)
-        if (useSmtp) {
-            const joinLink = `${baseClient}/invite/${token}`;
-            const subject = `${inviterName} has invited you to a disagreement`;
-            const htmlBody = `
-                <p>Hi ${name},</p>
-                <p>${inviterName} has invited you to join a disagreement titled: "${disagreement.title}".</p>
-                ${customMessage ? `<p>They added the following message:</p><blockquote>${customMessage}</blockquote>` : ''}
-                <p><a href="${joinLink}">Click here to view the invitation</a></p>
-            `;
-
-            await transporter.sendMail({
-                from: EMAIL_FROM,
-                to: email,
-                subject: subject,
-                html: htmlBody,
+        const joinLink = `${baseClient}/invite/${token}`;
+        try {
+            await sendDirectInviteEmail(email, name, {
+                creatorName: inviterName,
+                disagreementTitle: disagreement.title,
+                customMessage,
+                inviteLink: joinLink,
             });
+        } catch (e) {
+            console.error('Failed to send direct invite email:', e?.message || e);
         }
 
         sentInvites.push(email);
@@ -236,25 +211,6 @@ const createDirectInvite = asyncHandler(async (req, res) => {
 
     await disagreement.save();
 
-    // Trigger n8n webhook (optional)
-    if (useWebhook) {
-        try {
-            await fetch(N8N_WEBHOOK_INVITE_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    disagreementId: String(disagreement._id),
-                    title: disagreement.title,
-                    inviterName,
-                    invites: invites.map(i => ({ email: String(i.email || '').toLowerCase().trim(), name: i.name || null })),
-                    customMessage: customMessage || null,
-                    clientBaseUrl: baseClient,
-                }),
-            });
-        } catch (err) {
-            console.error('Failed to trigger n8n webhook:', err?.message || err);
-        }
-    }
 
     res.status(200).json({ message: `Invites processed: ${sentInvites.join(', ')}` });
 });

@@ -2,7 +2,7 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import asyncHandler from 'express-async-handler';
 import User from '../models/userModel.js';
-import emailService from '../../services/emailService.js';
+import emailService from '../services/emailService.js';
 const { sendWelcomeEmail } = emailService;
 
 // @desc    Register new user

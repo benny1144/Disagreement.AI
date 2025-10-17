@@ -3,7 +3,7 @@ import Disagreement from '../models/disagreementModel.js';
 import User from '../models/userModel.js';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
-import emailService from '../../services/emailService.js';
+import emailService from '../services/emailService.js';
 const { sendDirectInviteEmail } = emailService;
 
 // Helper function to check if a user is an active participant

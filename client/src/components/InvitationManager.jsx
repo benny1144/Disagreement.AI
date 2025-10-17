@@ -1,4 +1,11 @@
 import React, { useEffect, useRef } from 'react'
+import axios from 'axios'
+import { useAuth } from '../contexts/AuthContext'
+
+// Derive API base from environment; fallback to same-origin relative /api
+const envApi = typeof import.meta !== 'undefined' ? import.meta.env?.VITE_API_URL : undefined
+const API_BASE = envApi && String(envApi).trim() !== '' ? String(envApi).replace(/\/$/, '') : ''
+const API_URL = API_BASE ? `${API_BASE}/api` : '/api'
 
 /*
   InvitationManager
@@ -17,10 +24,11 @@ import React, { useEffect, useRef } from 'react'
  * @typedef {Object} InvitationManagerProps
  * @property {boolean} isOpen
  * @property {() => void} onClose
- * @property {{participants?: any[], pendingInvitations?: any[]}} [disagreement]
+ * @property {{_id?: string, participants?: any[], pendingInvitations?: any[]}} [disagreement]
  * @property {() => void} [onInviteNew]
  * @property {(email: string, raw?: any) => void} [onApproveInvite]
  * @property {(email: string, raw?: any) => void} [onDenyInvite]
+ * @property {(updated: any) => void} [onUpdated]
  */
 
 function getUserLabel(p) {
@@ -57,6 +65,7 @@ export default function InvitationManager({
   onInviteNew,
   onApproveInvite,
   onDenyInvite,
+  onUpdated,
 }) {
   const dialogRef = useRef(null)
 
@@ -71,10 +80,37 @@ export default function InvitationManager({
   const participants = Array.isArray(disagreement?.participants) ? disagreement.participants : []
   const pending = Array.isArray(disagreement?.pendingInvitations) ? disagreement.pendingInvitations : []
 
-  const handleApprove = (inv) => {
+  const { token } = useAuth()
+
+  const getPendingUserId = (inv) => {
+    if (!inv) return ''
+    if (typeof inv === 'string') return inv
+    if (inv?._id) return inv._id
+    if (inv?.user) {
+      if (typeof inv.user === 'string') return inv.user
+      if (inv.user?._id) return inv.user._id
+    }
+    return ''
+  }
+
+  const handleApprove = async (inv) => {
     const email = getInviteEmail(inv)
-    if (onApproveInvite) onApproveInvite(email, inv)
-    else console.log('Approve invitation for:', email || inv)
+    const userId = getPendingUserId(inv)
+    if (!disagreement?._id || !userId) {
+      if (onApproveInvite) onApproveInvite(email, inv)
+      else console.log('Approve invitation for:', email || inv)
+      return
+    }
+
+    try {
+      const res = await axios.post(`${API_URL}/disagreements/${disagreement._id}/approve`, { userId }, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      })
+      const updated = res?.data
+      if (onUpdated && updated) onUpdated(updated)
+    } catch (e) {
+      console.error('Failed to approve invitation:', e?.response?.data?.message || e?.message || e)
+    }
   }
 
   const handleDeny = (inv) => {

@@ -4,6 +4,7 @@ import crypto from 'crypto';
 const messageSchema = mongoose.Schema({
     sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     text: { type: String, required: true },
+    isAIMessage: { type: Boolean, default: false },
     timestamp: { type: Date, default: Date.now }
 });
 
@@ -59,6 +60,10 @@ const disagreementSchema = mongoose.Schema({
         enabled: { type: Boolean, default: true }
     },
     messages: [messageSchema],
+    aiOnboardingMessageSent: {
+        type: Boolean,
+        default: false,
+    },
     resolution: {
         type: String,
     }

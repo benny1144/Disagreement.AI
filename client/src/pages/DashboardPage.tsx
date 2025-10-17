@@ -3,6 +3,7 @@ import { useNavigate, Link as RouterLink } from 'react-router-dom'
 import axios from 'axios'
 import { useAuth } from '../contexts/AuthContext'
 import CreateDisagreementModal from '../components/CreateDisagreementModal.jsx'
+import InviteUserModal from '../components/InviteUserModal.jsx'
 
 // Derive API base from environment; fallback to same-origin relative /api
 const envApi = typeof import.meta !== 'undefined' ? import.meta.env?.VITE_API_URL : undefined
@@ -20,6 +21,8 @@ export default function DashboardPage(): JSX.Element {
   const [error, setError] = useState('')
   const [disagreements, setDisagreements] = useState<Disagreement[]>([])
   const [isModalOpen, setModalOpen] = useState(false)
+  const [isInviteModalOpen, setInviteModalOpen] = useState(false)
+  const [inviteTarget, setInviteTarget] = useState<{ id: string; token: string } | null>(null)
 
   const onOpen = () => setModalOpen(true)
   const onClose = () => setModalOpen(false)
@@ -58,6 +61,18 @@ export default function DashboardPage(): JSX.Element {
   const handleLogout = () => {
     logout()
     navigate('/login', { replace: true })
+  }
+
+  const openInviteFor = (d: any) => {
+    const id = (d && (d as any)._id) || ''
+    const token = (d && (d as any)?.publicInviteToken?.token) || ''
+    setInviteTarget({ id, token })
+    setInviteModalOpen(true)
+  }
+
+  const closeInvite = () => {
+    setInviteModalOpen(false)
+    setInviteTarget(null)
   }
 
   return (
@@ -108,14 +123,32 @@ export default function DashboardPage(): JSX.Element {
                 <div className="max-h-80 overflow-y-auto pr-1">
                   <ul className="space-y-3">
                     {disagreements.map((d) => (
-                      <li key={d._id}>
-                        <RouterLink
-                          to={`/disagreement/${d._id}`}
-                          className="block border border-slate-200 rounded-lg p-4 hover:bg-slate-50 hover:shadow-md transition-all"
-                        >
-                          <div className="text-base md:text-lg font-bold text-slate-800 truncate">{d.title || 'Untitled Disagreement'}</div>
-                          <div className="text-slate-600 mt-1 text-sm md:text-base">Participants: You</div>
-                        </RouterLink>
+                      <li key={d._id} className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-all">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <RouterLink to={`/disagreement/${d._id}`} className="block">
+                              <div className="text-base md:text-lg font-bold text-slate-800 truncate">{d.title || 'Untitled Disagreement'}</div>
+                            </RouterLink>
+                            <p className="text-xs text-slate-500 font-mono mt-1 break-all">ID: {(d as any)?._id}</p>
+                            <div className="text-slate-600 mt-1 text-sm md:text-base">
+                              {(() => {
+                                const parts = (d as any)?.participants
+                                if (Array.isArray(parts) && parts.length) {
+                                  const names = parts.map((p: any) => (p?.user?.name || p?.name)).filter(Boolean)
+                                  if (names.length) return `Participants: ${names.join(', ')}`
+                                }
+                                return 'Participants: You'
+                              })()}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => openInviteFor(d)}
+                            className="shrink-0 inline-flex items-center rounded-md bg-blue-600 text-white font-semibold shadow-sm hover:bg-blue-500 px-3 py-1.5 text-sm md:text-base"
+                          >
+                            Invite
+                          </button>
+                        </div>
                       </li>
                     ))}
                   </ul>
@@ -155,13 +188,19 @@ export default function DashboardPage(): JSX.Element {
           </div>
         )}
 
-        {/* Modal */}
+        {/* Modals */}
         <CreateDisagreementModal
           isOpen={isModalOpen}
           onClose={onClose}
           onCreate={({ created }: any) => {
             if (created) setDisagreements((prev) => [created, ...prev])
           }}
+        />
+        <InviteUserModal
+          isOpen={isInviteModalOpen}
+          onClose={closeInvite}
+          disagreementId={inviteTarget?.id}
+          publicInviteToken={inviteTarget?.token || ''}
         />
       </div>
     </div>

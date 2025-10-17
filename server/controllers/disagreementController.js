@@ -4,11 +4,22 @@ import User from '../models/userModel.js';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import emailService from '../services/emailService.js';
+import { postOnboardingMessage } from '../services/aiService.js';
 const { sendDirectInviteEmail } = emailService;
 
 // Helper function to check if a user is an active participant
 const isUserActiveParticipant = (disagreement, userId) => {
     return disagreement.participants.some(p => p.user.equals(userId) && p.status === 'active');
+};
+
+// Helper: check if user is listed as a participant (any status)
+const isUserAnyParticipant = (disagreement, userId) => {
+    return disagreement.participants.some(p => p.user.equals(userId));
+};
+
+// Helper: check if user is in pendingInvitations queue
+const isUserPendingInvite = (disagreement, userId) => {
+    return Array.isArray(disagreement.pendingInvitations) && disagreement.pendingInvitations.some(u => u.equals(userId));
 };
 
 // @desc    Get all disagreements for the logged-in user
@@ -18,7 +29,10 @@ const getDisagreements = asyncHandler(async (req, res) => {
     // Find disagreements where the user is listed as an active participant
     const disagreements = await Disagreement.find({
         participants: { $elemMatch: { user: req.user.id, status: 'active' } }
-    }).populate('creator', 'name').sort({ createdAt: -1 });
+    })
+      .populate('creator', 'name')
+      .populate('participants.user', 'name email')
+      .sort({ createdAt: -1 });
     res.status(200).json(disagreements);
 });
 
@@ -46,15 +60,16 @@ const getDisagreement = asyncHandler(async (req, res) => {
     const disagreement = await Disagreement.findById(req.params.id)
         .populate('creator', 'name')
         .populate('participants.user', 'name email')
-        .populate('pendingInvitations', 'name email');
+        .populate('pendingInvitations', 'name email')
+        .populate('messages.sender', 'name');
 
     if (!disagreement) {
         res.status(404);
         throw new Error('Disagreement not found');
     }
 
-    // AUTH CHECK: User must be an active participant to view
-    if (!isUserActiveParticipant(disagreement, req.user.id)) {
+    // AUTH CHECK: Allow any listed participant (any status) OR users awaiting approval
+    if (!(isUserAnyParticipant(disagreement, req.user.id) || isUserPendingInvite(disagreement, req.user.id))) {
         res.status(401);
         throw new Error('Not Authorized');
     }
@@ -118,6 +133,7 @@ const acceptInvite = asyncHandler(async (req, res) => {
     }
 
     const directInvite = disagreement.directInvites.find(inv => inv.token === token);
+    let pendingApproval = false;
     
     // SCENARIO 1: Direct Invite (Trusted, Auto-Approved)
     if (directInvite) {
@@ -138,10 +154,28 @@ const acceptInvite = asyncHandler(async (req, res) => {
             if (!Array.isArray(disagreement.pendingInvitations)) disagreement.pendingInvitations = [];
             disagreement.pendingInvitations.push(userToJoin.id);
         }
+        pendingApproval = true;
     }
 
     await disagreement.save();
-    res.status(200).json({ message: 'Invitation accepted successfully.', disagreementId: disagreement._id });
+    if (pendingApproval) {
+        return res.status(202).json({ code: 'PENDING_APPROVAL', message: 'Your request to join is pending creator approval.', disagreementId: disagreement._id });
+    }
+
+    // Trigger AI onboarding if we now have at least two active participants and it's not sent yet
+    try {
+        const updatedDisagreement = await Disagreement.findById(disagreement._id)
+        const activeCount = Array.isArray(updatedDisagreement?.participants)
+            ? updatedDisagreement.participants.filter(p => p.status === 'active').length
+            : 0
+        if (activeCount >= 2 && !updatedDisagreement.aiOnboardingMessageSent) {
+            await postOnboardingMessage(updatedDisagreement._id)
+        }
+    } catch (e) {
+        console.error('Error evaluating AI onboarding trigger (acceptInvite):', e?.message || e)
+    }
+
+    return res.status(200).json({ message: 'Invitation accepted successfully.', disagreementId: disagreement._id });
 });
 
 // @desc    Create and send direct email invitations
@@ -161,8 +195,9 @@ const createDirectInvite = asyncHandler(async (req, res) => {
         throw new Error('Disagreement not found');
     }
 
-    // AUTH CHECK: Only the creator can send direct invites
-    if (!disagreement.creator.equals(req.user.id)) {
+    // AUTH CHECK: Any participant (any status) can send direct invites
+    const isParticipant = disagreement.participants.some(p => p.user.equals(req.user.id));
+    if (!isParticipant) {
         res.status(401);
         throw new Error('Not authorized to send invites');
     }
@@ -300,6 +335,19 @@ const approveInvitation = asyncHandler(async (req, res) => {
         .populate('creator', 'name')
         .populate('participants.user', 'name email')
         .populate('pendingInvitations', 'name email');
+
+    // Trigger AI onboarding if we now have at least two active participants and it's not sent yet
+    try {
+        const activeCount = Array.isArray(updated?.participants)
+            ? updated.participants.filter(p => p.status === 'active').length
+            : 0
+        if (activeCount >= 2 && !updated.aiOnboardingMessageSent) {
+            await postOnboardingMessage(updated._id)
+        }
+    } catch (e) {
+        console.error('Error evaluating AI onboarding trigger (approveInvitation):', e?.message || e)
+    }
+
     res.status(200).json(updated);
 });
 

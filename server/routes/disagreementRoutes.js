@@ -32,8 +32,10 @@ router.put('/:id/participants', protect, manageParticipant);
 // Approval/Deny for pending invitations (creator only)
 router.post('/:id/invitations/approve', protect, approveInvitation);
 router.post('/:id/invitations/deny', protect, denyInvitation);
+// Alias route: Approve participant (creator only)
+router.post('/:id/approve', protect, approveInvitation);
 
-// Direct invites (creator only)
+// Direct invites (participant allowed)
 router.post('/:id/invite', protect, createDirectInvite);
 
 // Legacy routes (left commented for now; to be reintroduced in later parts if needed)

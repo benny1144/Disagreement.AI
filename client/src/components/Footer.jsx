@@ -15,7 +15,7 @@ function Footer() {
               <Link to={{ pathname: '/terms' }} className="hover:text-slate-800">Terms</Link>
             </li>
             <li>
-              <Link to={{ pathname: '/contact' }} className="hover:text-slate-800">Contact Us</Link>
+              <Link to={{ pathname: '/app/contact' }} className="hover:text-slate-800">Contact Us</Link>
             </li>
           </ul>
         </nav>

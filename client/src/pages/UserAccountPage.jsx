@@ -98,6 +98,15 @@ export default function UserAccountPage() {
             <h2 className="text-xl font-bold text-slate-800 mb-3">Profile Information</h2>
             <div className="grid grid-cols-1 gap-4">
               <div>
+                <label className="block text-slate-600 mb-1 font-semibold">Name</label>
+                <input
+                  type="text"
+                  value={user?.name || ''}
+                  readOnly
+                  className="w-full rounded-md border border-slate-300 bg-slate-50 px-3 py-2 text-lg text-slate-700"
+                />
+              </div>
+              <div>
                 <label className="block text-slate-600 mb-1 font-semibold">Email</label>
                 <input
                   type="email"

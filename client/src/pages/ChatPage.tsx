@@ -200,7 +200,8 @@ export default function ChatPage(): JSX.Element {
                   disagreement.messages.map((msg, idx) => {
                     const senderId = typeof msg.sender === 'object' ? (msg.sender?._id || (msg as any).sender?.id) : (msg as any).sender
                     const isMine = currentUserId && senderId && String(senderId) === String(currentUserId)
-                    const isAI = !isMine && (typeof msg.sender === 'string' && (msg.sender as string).toLowerCase() === 'ai' || (msg as any).isAI)
+                    const isAI = !isMine && (typeof msg.sender === 'string' && (msg.sender as string).toLowerCase() === 'ai' || (msg as any).isAI || (msg as any).isAIMessage)
+                    const senderName = isAI ? 'AI Mediator' : (typeof msg.sender === 'object' ? (msg.sender?.name || 'Participant') : (!isMine ? 'Participant' : 'You'))
 
                     return (
                       <div key={msg._id || idx} className={`flex ${isMine ? 'justify-end' : 'justify-start'} items-end gap-2`}>
@@ -208,10 +209,15 @@ export default function ChatPage(): JSX.Element {
                         {!isMine && isAI && (
                           <div className="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs select-none">AI</div>
                         )}
-                        <div
-                          className={`${isMine ? 'bg-blue-600 text-white' : isAI ? 'bg-[#F3F4FF] text-slate-900' : 'bg-slate-100 text-slate-900'} px-4 py-2 rounded-2xl max-w-[75%] shadow-sm`}
-                        >
-                          <p className="text-lg">{msg.text}</p>
+                        <div className="flex flex-col max-w-[75%]">
+                          {!isMine && (
+                            <span className="text-xs text-slate-500 mb-1 ml-2">{senderName}</span>
+                          )}
+                          <div
+                            className={`${isMine ? 'bg-blue-600 text-white self-end' : isAI ? 'bg-[#F3F4FF] text-slate-900' : 'bg-slate-100 text-slate-900'} px-4 py-2 rounded-2xl shadow-sm`}
+                          >
+                            <p className="text-lg">{msg.text}</p>
+                          </div>
                         </div>
                       </div>
                     )
@@ -277,6 +283,7 @@ export default function ChatPage(): JSX.Element {
                 onClose={closeManagerModal}
                 disagreement={disagreement as any}
                 onInviteNew={openInviteModal}
+                onUpdated={(updated: any) => setDisagreement(updated)}
               />
             </>
           )}

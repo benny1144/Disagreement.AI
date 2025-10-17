@@ -91,15 +91,26 @@ export default function InviteAcceptPage() {
         {},
         { headers: { Authorization: `Bearer ${authToken}` } }
       )
-      const { disagreementId } = res.data || {}
+      const { disagreementId, code } = res.data || {}
+
+      if (res.status === 202 || code === 'PENDING_APPROVAL') {
+        setSuccessMsg('Your participation in this disagreement is pending approval. You will receive an email when approved or you can check back here later.')
+        return
+      }
+
       setSuccessMsg('You have successfully accepted the invitation! Redirecting…')
       // Navigate to the chat page
       if (disagreementId) {
         navigate(`/disagreement/${disagreementId}`)
       }
     } catch (err) {
-      const msg = (err && err.response && err.response.data && err.response.data.message) || err?.message || 'Failed to accept invitation.'
-      setError(msg)
+      const apiCode = err?.response?.data?.code
+      if (apiCode === 'PENDING_APPROVAL') {
+        setError('Your participation in this disagreement is pending approval. You will receive an email when approved or you can check back here later.')
+      } else {
+        const msg = (err && err.response && err.response.data && err.response.data.message) || err?.message || 'Failed to accept invitation.'
+        setError(msg)
+      }
     } finally {
       setAccepting(false)
     }

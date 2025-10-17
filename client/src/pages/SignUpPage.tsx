@@ -34,6 +34,7 @@ export default function SignUpPage(): JSX.Element {
       const user = await authService.register(userData)
       if (user) {
         console.log('Registration successful!')
+        try { localStorage.setItem('user', JSON.stringify(user)) } catch (_) {}
         navigate('/dashboard')
       }
     } catch (error: any) {

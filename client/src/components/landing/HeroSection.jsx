@@ -7,7 +7,7 @@ export default function HeroSection() {
                 <h1 className="text-4xl md:text-6xl font-bold text-foreground leading-tight text-balance">
                     Resolve Disagreements in Minutes, Not Months.
                 </h1>
-                <p className="text-lg md:text-xl text-muted-foreground leading-relaxed">
+                <p className="text-lg md:text-xl text-muted-foreground leading-relaxed md:text-left">
                     <strong>From Conflict To Clarity</strong>. AI-powered dispute resolution that's fair, fast, and transparent. Join the future of conflict resolution.
                 </p>
                 <a href="/register" className="block mt-6">

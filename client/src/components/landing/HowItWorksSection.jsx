@@ -10,7 +10,7 @@ export default function HowItWorksSection() {
                         <FileText className="w-7 h-7 text-[#5D5FEF]" />
                     </div>
                     <h3 className="text-xl font-bold text-foreground">1. Submit Your Case</h3>
-                    <p className="text-muted-foreground leading-relaxed">
+                    <p className="text-muted-foreground leading-relaxed md:text-left">
                         Upload your dispute details and relevant documents. Our platform guides you through a simple, structured process.
                     </p>
                 </Card>

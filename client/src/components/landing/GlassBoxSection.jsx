@@ -5,7 +5,7 @@ export default function GlassBoxSection() {
                 <div className="grid gap-10 md:grid-cols-2 items-center">
                     <div className="space-y-4 text-center md:text-left">
                         <h2 className="text-3xl md:text-4xl font-extrabold text-foreground">Our Glass Box Philosophy</h2>
-                        <p className="text-lg text-gray-700 leading-relaxed">
+                        <p className="text-lg text-gray-700 leading-relaxed md:text-left">
                             Many AI systems operate as 'black boxes,' leaving you to wonder how they reached a conclusion. We do the opposite. Our '<strong>Glass Box</strong>' philosophy means every decision is transparent and explainable. You can see exactly how conclusions are reached, what factors were considered, and why specific outcomes were recommended, giving you complete confidence in the process.
                         </p>
                     </div>

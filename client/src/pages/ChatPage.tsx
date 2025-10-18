@@ -41,6 +41,8 @@ export default function ChatPage(): JSX.Element {
   const [isManagerModalOpen, setManagerModalOpen] = useState(false)
   const [showUpload, setShowUpload] = useState(false)
   const uploadRef = useRef(null)
+  const [showParticipants, setShowParticipants] = useState(false)
+  const participantsRef = useRef(null)
   const socketRef = useRef<Socket | null>(null)
 
   const { user, token } = useAuth()
@@ -111,15 +113,19 @@ export default function ChatPage(): JSX.Element {
   
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (uploadRef.current && !(uploadRef.current as any).contains(event.target)) {
+      const target = event.target as Node
+      if (uploadRef.current && !(uploadRef.current as any).contains(target)) {
         setShowUpload(false)
+      }
+      if (participantsRef.current && !(participantsRef.current as any).contains(target)) {
+        setShowParticipants(false)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
     }
-  }, [uploadRef])
+  }, [uploadRef, participantsRef])
   
   const handleSendMessage = () => {
     const text = (newMessage || '').trim()
@@ -142,7 +148,7 @@ export default function ChatPage(): JSX.Element {
         <aside className="bg-white md:rounded-xl md:shadow p-4 border-r border-slate-200 md:border-0">
           <nav className="space-y-4">
             <Link 
-              to="/dashboard" 
+              to={{ pathname: '/dashboard' }} 
               className="flex items-center gap-2 text-lg font-semibold text-slate-600 hover:text-blue-600 transition-colors"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
@@ -175,6 +181,38 @@ export default function ChatPage(): JSX.Element {
                   {Boolean((disagreement as any)?.caseId) && (
                     <p className="text-xs text-slate-500 font-mono">Case ID: {(disagreement as any).caseId}</p>
                   )}
+                  <div className="mt-2">
+                    <div className="relative inline-block" ref={participantsRef}>
+                      <button
+                        type="button"
+                        onClick={() => setShowParticipants(!showParticipants)}
+                        className="inline-flex items-center gap-2 p-2 rounded-full hover:bg-slate-100"
+                        aria-haspopup="true"
+                        aria-expanded={showParticipants}
+                        aria-label="Show participants"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-slate-600"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        <span className="text-sm text-slate-600">Participants: {participantsList.length}</span>
+                      </button>
+                      {showParticipants && (
+                        <div className="absolute z-10 mt-2 w-64 max-w-[80vw] bg-white border border-slate-200 rounded-lg shadow-lg p-3">
+                          <p className="text-xs uppercase text-slate-400 font-semibold mb-2">Participants</p>
+                          <ul className="space-y-1">
+                            {participantsList.length === 0 ? (
+                              <li className="text-sm text-slate-500">No participants yet</li>
+                            ) : (
+                              participantsList.map((p: any, i: number) => {
+                                const name = p?.user?.name || p?.user?.email || 'Participant'
+                                return (
+                                  <li key={i} className="text-sm text-slate-700">{name}</li>
+                                )
+                              })
+                            )}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
                 {isCreator && (
                   <div className="flex items-center gap-2">
@@ -205,7 +243,7 @@ export default function ChatPage(): JSX.Element {
                     const senderId = typeof msg.sender === 'object' ? (msg.sender?._id || (msg as any).sender?.id) : (msg as any).sender
                     const isMine = currentUserId && senderId && String(senderId) === String(currentUserId)
                     const isAI = !isMine && (typeof msg.sender === 'string' && (msg.sender as string).toLowerCase() === 'ai' || (msg as any).isAI || (msg as any).isAIMessage)
-                    const senderName = isAI ? 'AI Mediator' : (typeof msg.sender === 'object' ? (msg.sender?.name || 'Participant') : (!isMine ? 'Participant' : 'You'))
+                    const senderName = isAI ? 'Mediator' : (typeof msg.sender === 'object' ? (msg.sender?.name || 'Participant') : (isMine ? 'You' : 'Participant'))
 
                     return (
                       <div key={msg._id || idx} className={`flex ${isMine ? 'justify-end' : 'justify-start'} items-end gap-2`}>
@@ -214,11 +252,9 @@ export default function ChatPage(): JSX.Element {
                           <div className="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs select-none">AI</div>
                         )}
                         <div className="flex flex-col max-w-[75%]">
-                          {!isMine && (
-                            <span className="text-xs text-slate-500 mb-1 ml-2">{senderName}</span>
-                          )}
+                          <span className="text-xs text-slate-500 mb-1 ml-2">{senderName}</span>
                           <div
-                            className={`${isMine ? 'bg-blue-600 text-white self-end' : isAI ? 'bg-[#F3F4FF] text-slate-900' : 'bg-slate-100 text-slate-900'} px-4 py-2 rounded-2xl shadow-sm`}
+                            className={`${isMine ? 'bg-slate-200 text-slate-900 self-end' : isAI ? 'bg-[#F3F4FF] text-slate-900' : 'bg-slate-100 text-slate-900'} px-4 py-2 rounded-2xl shadow-sm`}
                           >
                             <p className="text-lg">{msg.text}</p>
                           </div>
@@ -227,11 +263,6 @@ export default function ChatPage(): JSX.Element {
                     )
                   })
                 )}
-              </div>
-
-              {/* Corrected legal disclaimer (now part of the static composer area) */}
-              <div className="px-4 md:px-0 pt-2">
-                <p className="text-sm italic text-slate-500">Please note: The AI does not provide legally binding advice.</p>
               </div>
 
               {/* Composer */}
@@ -268,12 +299,17 @@ export default function ChatPage(): JSX.Element {
                 />
                 <button
                   type="submit"
-                  className="inline-flex items-center rounded-md bg-blue-600 text-white font-semibold shadow-sm hover:bg-blue-500 px-4 py-2 text-lg"
+                  className="p-3 rounded-full bg-blue-600 text-white shadow-sm hover:bg-blue-500"
+                  aria-label="Send message"
                 >
-                  Send
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 ml-2"><line x1="22" x2="11" y1="2" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><line x1="22" x2="11" y1="2" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                 </button>
               </form>
+
+              {/* AI legal disclaimer placed below the composer */}
+              <div className="px-4 md:px-0 pt-2">
+                <p className="text-sm italic text-slate-500">Please note: The AI does not provide legally binding advice.</p>
+              </div>
 
               {/* Invitation Modals */}
               <InviteUserModal

@@ -80,9 +80,9 @@ export default function DashboardPage(): JSX.Element {
       <div className="max-w-6xl mx-auto space-y-8">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-slate-800">Your Dashboard</h1>
+          <h1 className="text-3xl font-bold text-slate-800">Dashboard</h1>
           <div className="flex items-center gap-4">
-            <RouterLink to="/profile" className="px-4 py-2 rounded-md bg-blue-600 text-white font-semibold shadow-sm hover:bg-blue-500 text-lg">
+            <RouterLink to={{ pathname: '/profile' }} className="px-4 py-2 rounded-md bg-blue-600 text-white font-semibold shadow-sm hover:bg-blue-500 text-lg">
               Profile
             </RouterLink>
             <button
@@ -165,8 +165,8 @@ export default function DashboardPage(): JSX.Element {
             <div className="lg:col-span-1 lg:row-span-1 bg-white rounded-2xl shadow p-6 hover:shadow-xl transition-all cursor-pointer" onClick={onOpen}>
               <div className="flex flex-col gap-2">
                 <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center text-2xl" aria-hidden>+</div>
-                <h3 className="text-xl font-bold text-slate-800">New Disagreement</h3>
-                <p className="text-slate-600">Start a new resolution process.</p>
+                <h3 className="text-xl font-bold text-slate-800">Add New Disagreement</h3>
+                <p className="text-slate-600">Begin the agreement process.</p>
               </div>
             </div>
 

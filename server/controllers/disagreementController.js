@@ -173,7 +173,7 @@ const acceptInvite = asyncHandler(async (req, res) => {
 
     // Trigger AI onboarding if we now have at least two active participants and it's not sent yet
     try {
-        const updatedDisagreement = await Disagreement.findById(disagreement._id)
+            const updatedDisagreement = await Disagreement.findById(disagreement._id)
         const activeCount = Array.isArray(updatedDisagreement?.participants)
             ? updatedDisagreement.participants.filter(p => p.status === 'active').length
             : 0
@@ -300,7 +300,9 @@ const manageParticipant = asyncHandler(async (req, res) => {
     }
 
     await disagreement.save();
-    const updatedDisagreement = await Disagreement.findById(req.params.id).populate('participants.user', 'name');
+    const updatedDisagreement = await Disagreement.findById(req.params.id)
+      .populate('participants.user', 'name email')
+      .populate('messages.sender', 'name');
     res.status(200).json(updatedDisagreement);
 });
 
@@ -345,14 +347,17 @@ const approveInvitation = asyncHandler(async (req, res) => {
     const updated = await Disagreement.findById(req.params.id)
         .populate('creator', 'name')
         .populate('participants.user', 'name email')
-        .populate('pendingInvitations', 'name email');
+        .populate('pendingInvitations', 'name email')
+        .populate('messages.sender', 'name');
 
     // Trigger AI onboarding if we now have at least two active participants and it's not sent yet
     try {
         const activeCount = Array.isArray(updated?.participants)
             ? updated.participants.filter(p => p.status === 'active').length
             : 0
+        console.log(`[approveInvitation] Active participants after approve: ${activeCount}, flag sent=${updated?.aiOnboardingMessageSent}`)
         if (activeCount >= 2 && !updated.aiOnboardingMessageSent) {
+            console.log('[approveInvitation] Triggering AI onboarding message...')
             await postOnboardingMessage(updated._id)
         }
     } catch (e) {
@@ -391,7 +396,8 @@ const denyInvitation = asyncHandler(async (req, res) => {
     const updated = await Disagreement.findById(req.params.id)
         .populate('creator', 'name')
         .populate('participants.user', 'name email')
-        .populate('pendingInvitations', 'name email');
+        .populate('pendingInvitations', 'name email')
+        .populate('messages.sender', 'name');
     res.status(200).json(updated);
 });
 

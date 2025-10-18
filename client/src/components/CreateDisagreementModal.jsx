@@ -4,14 +4,18 @@ import { useNavigate } from 'react-router-dom';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
 const DISAGREEMENTS_API_BASE = `${API_URL}/api/disagreements`;
+const AI_API_BASE = `${API_URL}/api/ai`;
 
 function CreateDisagreementModal({ isOpen, onClose, onCreate }) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState(''); // NEW: State for the description
+  const [aiReady, setAiReady] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
   const dialogRef = useRef(null);
+  const descRef = useRef(null);
 
   // Effect to control the dialog's visibility
   useEffect(() => {
@@ -28,6 +32,8 @@ function CreateDisagreementModal({ isOpen, onClose, onCreate }) {
     if (isOpen) {
       setTitle('');
       setDescription(''); // NEW: Reset description
+      setAiReady(false);
+      setAiLoading(false);
       setError('');
       setIsSubmitting(false);
     }
@@ -37,20 +43,39 @@ function CreateDisagreementModal({ isOpen, onClose, onCreate }) {
     e.preventDefault();
     setError('');
     const trimmedTitle = title.trim();
-    const trimmedDescription = description.trim(); // NEW: Get trimmed description
+    const trimmedDescription = description.trim();
 
-    // UPDATED: Validate both fields
     if (!trimmedTitle || !trimmedDescription) {
       setError('Please provide both a title and a description.');
       return;
     }
 
+    // Step 1: If we haven't generated an AI summary yet, do that first
+    if (!aiReady) {
+      setAiLoading(true);
+      try {
+        const res = await axios.post(`${AI_API_BASE}/summarize-description`, { description: trimmedDescription });
+        const summary = (res?.data?.summary || '').toString().trim();
+        const nextDesc = summary || trimmedDescription;
+        setDescription(nextDesc);
+        setAiReady(true);
+      } catch (err) {
+        const message = err?.response?.data?.message || err?.message || 'Failed to generate AI summary. You can refine manually.';
+        setError(message);
+        // Allow user to refine manually with their original description
+        setAiReady(true);
+        setDescription(trimmedDescription);
+      } finally {
+        setAiLoading(false);
+      }
+      return; // Stop here; user will now see Accept & Create / Refine options
+    }
+
+    // Step 2: Proceed with creating the disagreement using the (possibly refined) description
     let token = null;
     try {
       token = JSON.parse(localStorage.getItem('user'))?.token;
-    } catch {
-      // Ignore errors
-    }
+    } catch {}
 
     if (!token) {
       setError('Authentication error. Please log in again.');
@@ -59,10 +84,9 @@ function CreateDisagreementModal({ isOpen, onClose, onCreate }) {
 
     setIsSubmitting(true);
     try {
-      // UPDATED: Send the correct payload { title, description }
       const response = await axios.post(
         DISAGREEMENTS_API_BASE,
-        { title: trimmedTitle, description: trimmedDescription },
+        { title: trimmedTitle, description: description.trim() },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -116,7 +140,8 @@ function CreateDisagreementModal({ isOpen, onClose, onCreate }) {
               <input
                 id="disagreement-title"
                 type="text"
-                placeholder="e.g., Project Scope Discussion"
+                placeholder="Title this disagreement"
+                maxLength="40"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 required
@@ -131,11 +156,12 @@ function CreateDisagreementModal({ isOpen, onClose, onCreate }) {
               </label>
               <textarea
                 id="disagreement-description"
-                placeholder="A 1-2 sentence, neutral summary of the issue."
+                placeholder="Describe what this disagreement is about."
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 required
                 rows="3"
+                ref={descRef}
                 className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -143,22 +169,46 @@ function CreateDisagreementModal({ isOpen, onClose, onCreate }) {
 
           {error && <p className="mt-3 text-center text-red-600 text-sm">{error}</p>}
 
-          <div className="flex justify-end gap-3 mt-6">
-            <button
-              type="button"
-              onClick={handleClose}
-              disabled={isSubmitting}
-              className="px-4 py-2 rounded-md border border-slate-300 text-slate-700 hover:bg-slate-50 text-lg disabled:opacity-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="px-5 py-2 rounded-md bg-blue-600 text-white font-semibold shadow-sm hover:bg-blue-500 text-lg disabled:bg-blue-300 disabled:cursor-not-allowed"
-            >
-              {isSubmitting ? 'Creating...' : 'Create'}
-            </button>
+          <div className="flex flex-col sm:flex-row sm:justify-between items-stretch sm:items-center gap-3 mt-6">
+            <div className="text-xs text-slate-500">
+              {aiReady ? 'Review the AI-generated description. You can refine it before creating.' : 'We’ll generate a neutral, one-sentence summary from your description.'}
+            </div>
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={handleClose}
+                disabled={isSubmitting || aiLoading}
+                className="px-4 py-2 rounded-md border border-slate-300 text-slate-700 hover:bg-slate-50 text-lg disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              {aiReady ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => { try { descRef.current?.focus(); } catch {} }}
+                    className="px-4 py-2 rounded-md border border-slate-300 text-slate-700 hover:bg-slate-50 text-lg"
+                  >
+                    Refine
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="px-5 py-2 rounded-md bg-blue-600 text-white font-semibold shadow-sm hover:bg-blue-500 text-lg disabled:bg-blue-300 disabled:cursor-not-allowed"
+                  >
+                    {isSubmitting ? 'Creating...' : 'Accept & Create'}
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="submit"
+                  disabled={aiLoading}
+                  className="px-5 py-2 rounded-md bg-blue-600 text-white font-semibold shadow-sm hover:bg-blue-500 text-lg disabled:bg-blue-300 disabled:cursor-not-allowed"
+                >
+                  {aiLoading ? 'Generating…' : 'Submit'}
+                </button>
+              )}
+            </div>
           </div>
         </form>
       </div>

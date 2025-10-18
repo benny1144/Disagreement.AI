@@ -13,7 +13,7 @@ export default function FeaturesSection() {
                         </div>
                         <h3 className="text-xl font-bold text-foreground">Transparent AI</h3>
                     </div>
-                    <p className="text-muted-foreground">Every decision includes a clear reasoning trail you can review.</p>
+                    <p className="text-muted-foreground md:text-left">Every decision includes a clear reasoning trail you can review.</p>
                 </Card>
                 <Card className="p-6 space-y-3 border-gray-200 shadow-sm">
                     <div className="flex items-center gap-3">
@@ -22,7 +22,7 @@ export default function FeaturesSection() {
                         </div>
                         <h3 className="text-xl font-bold text-foreground">Fast Resolution</h3>
                     </div>
-                    <p className="text-muted-foreground">Settle most disputes in days, not months.</p>
+                    <p className="text-muted-foreground md:text-left">Settle most disputes in days, not months.</p>
                 </Card>
                 <Card className="p-6 space-y-3 border-gray-200 shadow-sm">
                     <div className="flex items-center gap-3">
@@ -31,7 +31,7 @@ export default function FeaturesSection() {
                         </div>
                         <h3 className="text-xl font-bold text-foreground">Built for Trust</h3>
                     </div>
-                    <p className="text-muted-foreground">Privacy-first approach with a 120-day data deletion policy.</p>
+                    <p className="text-muted-foreground md:text-left">Privacy-first approach with a 120-day data deletion policy.</p>
                 </Card>
             </div>
         </section>

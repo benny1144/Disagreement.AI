@@ -11,6 +11,7 @@ import Disagreement from './models/disagreementModel.js';
 import userRoutes from './routes/userRoutes.js';
 import disagreementRoutes from './routes/disagreementRoutes.js';
 import contactRoutes from './routes/contactRoutes.js'; // --- (Step 1: Import the new contact routes) ---
+import aiRoutes from './routes/aiRoutes.js';
 
 // Load environment variables from project root, then local, then fallback to services/.env if needed
 import path from 'path';
@@ -96,6 +97,7 @@ app.use((req, res, next) => {
 app.use('/api/users', userRoutes);
 app.use('/api/disagreements', disagreementRoutes);
 app.use('/api', contactRoutes); // Primary: mount contact routes from router
+app.use('/api/ai', aiRoutes);
 
 // Lightweight health check (for clients to auto-detect API availability)
 app.get('/api/health', (req, res) => {

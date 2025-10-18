@@ -3,6 +3,7 @@ import { Component, lazy, Suspense } from 'react';
 import Layout from './components/Layout.jsx';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
+import CookieConsentBanner from './components/CookieConsentBanner.jsx';
 
 // --- (Step 1: Update the HomePage import to point to the new .tsx file) ---
 const HomePage = lazy(() => import('./pages/HomePage.jsx'));
@@ -15,6 +16,7 @@ const UserAccountPage = lazy(() => import('./pages/UserAccountPage.jsx'));
 const ContactPage = lazy(() => import('./pages/ContactPage.jsx'));
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage.jsx'));
 const TermsPage = lazy(() => import('./pages/TermsPage.jsx'));
+const CookiePolicyPage = lazy(() => import('./pages/CookiePolicyPage.jsx'));
 const InAppContactPage = lazy(() => import('./pages/InAppContactPage.jsx'));
 
 class ErrorBoundary extends Component {
@@ -72,6 +74,7 @@ function App() {
                                 <Route path="contact" element={<ContactPage />} />
                                 <Route path="privacy" element={<PrivacyPage />} />
                                 <Route path="terms" element={<TermsPage />} />
+                                <Route path="cookies" element={<CookiePolicyPage />} />
                                 <Route path="dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
                                 <Route path="profile" element={<ProtectedRoute><UserAccountPage /></ProtectedRoute>} />
                                 <Route path="app/contact" element={<ProtectedRoute><InAppContactPage /></ProtectedRoute>} />
@@ -79,6 +82,7 @@ function App() {
                               </Route>
                             </Routes>
                         </Suspense>
+                <CookieConsentBanner />
                 </Router>
             </AuthProvider>
         </ErrorBoundary>

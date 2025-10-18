@@ -5,6 +5,7 @@ import cors from 'cors';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import connectDB from './config/db.js';
+import Disagreement from './models/disagreementModel.js';
 
 // Import route files
 import userRoutes from './routes/userRoutes.js';
@@ -230,9 +231,29 @@ io.on('connection', (socket) => {
         console.log(`User ${socket.id} joined room ${data.roomId}`);
     });
 
-    socket.on('send_message', (data) => {
-        // Broadcast the message to the specific room
-        io.to(data.roomId).emit('receive_message', data);
+    socket.on('send_message', async (data) => {
+        try {
+            const { roomId, sender, text } = data || {}
+            if (!roomId || !sender || !text || String(text).trim() === '') return
+
+            const disagreement = await Disagreement.findById(roomId)
+            if (!disagreement) {
+                console.warn(`[socket] send_message: Disagreement not found for room ${roomId}`)
+                return
+            }
+
+            const message = { sender, text }
+            disagreement.messages.push(message)
+            await disagreement.save()
+
+            const saved = disagreement.messages[disagreement.messages.length - 1]
+            console.log(`[socket] Message persisted in room ${roomId}:`, { _id: saved?._id, sender, len: disagreement.messages.length })
+
+            // Broadcast the persisted message to the specific room
+            io.to(roomId).emit('receive_message', { _id: saved?._id, sender, text })
+        } catch (e) {
+            console.error('[socket] Error handling send_message:', e?.message || e)
+        }
     });
 
     socket.on('disconnect', () => {

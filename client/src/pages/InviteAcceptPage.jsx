@@ -65,10 +65,9 @@ export default function InviteAcceptPage() {
   const handleAcceptInvite = async () => {
     if (!token) return
 
-    // If not logged in, guide to login
+    // If not logged in, redirect to Sign Up and carry the token in state
     if (!isLoggedIn) {
-      // Optionally preserve return path
-      navigate('/login')
+      navigate('/register', { state: { fromInvite: token } })
       return
     }
 

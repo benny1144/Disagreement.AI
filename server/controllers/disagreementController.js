@@ -177,14 +177,16 @@ const acceptInvite = asyncHandler(async (req, res) => {
         const activeCount = Array.isArray(updatedDisagreement?.participants)
             ? updatedDisagreement.participants.filter(p => p.status === 'active').length
             : 0
+        console.log(`[acceptInvite] Active participants after accept: ${activeCount}, flag sent=${updatedDisagreement?.aiOnboardingMessageSent}`)
         if (activeCount >= 2 && !updatedDisagreement.aiOnboardingMessageSent) {
+            console.log('[acceptInvite] Triggering AI onboarding message...')
             await postOnboardingMessage(updatedDisagreement._id)
         }
     } catch (e) {
         console.error('Error evaluating AI onboarding trigger (acceptInvite):', e?.message || e)
     }
 
-    return res.status(200).json({ message: 'Invitation accepted successfully.', disagreementId: disagreement._id });
+    return res.status(200).json({ status: 'approved', message: 'Invitation accepted successfully.', disagreementId: disagreement._id });
 });
 
 // @desc    Create and send direct email invitations

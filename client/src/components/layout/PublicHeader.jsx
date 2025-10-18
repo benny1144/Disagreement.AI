@@ -32,15 +32,14 @@ export default function PublicHeader() {
     <header className="sticky top-0 z-50 bg-white border-b border-slate-200">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         {/* Logo */}
-        <Link to={{ pathname: '/' }} className="font-bold text-xl text-foreground focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#2667FF] rounded-sm">
+        <a href="/" className="font-bold text-xl text-foreground focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#2667FF] rounded-sm">
           DIS<span style={{ color: "#2667FF" }}>AGREEMENT</span>.AI
-        </Link>
+        </a>
 
         {/* Desktop actions */}
-        <div className="flex items-center gap-3">
-          <Link to={{ pathname: '/contact' }} className="hidden md:inline-block text-slate-700 hover:text-slate-900 font-medium">Contact</Link>
+        <div className="flex items-center gap-2">
           <Link to={{ pathname: '/login' }}>
-            <Button variant="outline" className="rounded-full px-5">
+            <Button variant="outline" className="rounded-full px-4 text-sm">
               Login
             </Button>
           </Link>

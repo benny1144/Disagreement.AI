@@ -165,8 +165,11 @@ export default function InviteAcceptPage() {
                     disabled={accepting}
                     className={`px-6 py-3 rounded-md text-white font-semibold text-lg shadow-sm ${accepting ? 'bg-blue-300 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500'}`}
                   >
-                    {isLoggedIn ? (accepting ? 'Accepting…' : 'Accept Invitation') : 'Log In to Accept'}
+                    {accepting ? 'Joining…' : 'Join Disagreement Now'}
                   </button>
+                  <Link to={{ pathname: '/login' }} state={{ fromInvite: token }} className="text-blue-600 hover:underline text-sm">
+                    Or Login to join
+                  </Link>
                   {!isLoggedIn && (
                     <p className="text-sm text-slate-600">
                       New here?{' '}

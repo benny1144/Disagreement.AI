@@ -49,7 +49,7 @@ export default function DirectInviteEmail({ recipientName, inviterName, disagree
             safeMessage
           )
         : null,
-      React.createElement('a', { href: safeLink, style: buttonStyle }, 'View Invitation')
+      React.createElement('a', { href: safeLink, style: buttonStyle }, 'Join Disagreement Now')
     ),
     React.createElement('p', { style: { fontSize: 12, color: '#64748b', marginTop: 16 } }, 'This invitation was sent via Disagreement.AI')
   )

@@ -3,16 +3,17 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 
 export default function LoginPage(): JSX.Element {
-  const [formData, setFormData] = useState({ email: '', password: '' })
+  const [formData, setFormData] = useState({ email: '', password: '', rememberMe: false })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
   const navigate = useNavigate()
   const { login } = useAuth()
 
-  const { email, password } = formData
+  const { email, password, rememberMe } = formData
 
   const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
+    const { name, type } = e.target
+    const value = type === 'checkbox' ? (e.target as HTMLInputElement).checked : (e.target as HTMLInputElement).value
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
@@ -72,6 +73,17 @@ export default function LoginPage(): JSX.Element {
             />
           </label>
         </div>
+
+        <label className="mt-2 flex items-center gap-2 text-sm text-slate-700">
+          <input
+            type="checkbox"
+            name="rememberMe"
+            checked={rememberMe}
+            onChange={onChange}
+            className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+          />
+          <span>Stay logged in on this device.</span>
+        </label>
 
         <button
           type="submit"

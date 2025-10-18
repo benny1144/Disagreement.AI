@@ -2,10 +2,10 @@ export default function Footer() {
     return (
         <footer className="bg-gray-900 text-gray-300 py-12">
             <div className="container mx-auto px-4 text-center md:text-left">
-                <div className="grid gap-8 md:grid-cols-4">
+                <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
                     <div className="space-y-4 md:col-span-1">
                         <h3 className="text-xl font-bold text-white">DIS<span style={{ color: '#5D5FEF' }}>AGREEMENT</span>.AI</h3>
-                        <p className="text-sm leading-relaxed">From Conflict To Clarity. Fair, fast, and transparent dispute resolution powered by AI.</p>
+                        <p className="text-sm leading-relaxed md:text-left">From Conflict To Clarity. Fair, fast, and transparent dispute resolution powered by AI.</p>
                     </div>
                     <div className="space-y-4">
                         <h4 className="font-semibold text-white">Product</h4>
@@ -33,7 +33,7 @@ export default function Footer() {
                     </div>
                 </div>
                 <div className="mt-12 pt-8 border-t border-gray-800 text-center text-sm">
-                    <p>&copy; 2025 Disagreement.AI - All rights reserved.</p>
+                    <p className="md:text-left">&copy; 2025 Disagreement.AI - All rights reserved.</p>
                 </div>
             </div>
         </footer>

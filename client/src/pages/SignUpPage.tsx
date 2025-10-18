@@ -1,10 +1,17 @@
 import React, { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
+import axios from 'axios'
 import authService from '../features/auth/authService.js'
+
+// Derive API base from environment; fallback to same-origin relative /api
+const envApi = typeof import.meta !== 'undefined' ? (import.meta as any).env?.VITE_API_URL : undefined
+const API_BASE = envApi && String(envApi).trim() !== '' ? String(envApi).replace(/\/$/, '') : ''
+const API_URL = API_BASE ? `${API_BASE}/api` : '/api'
 
 export default function SignUpPage(): JSX.Element {
   const [formData, setFormData] = useState({ name: '', email: '', password: '', password2: '' })
   const navigate = useNavigate()
+  const location = useLocation()
 
   const { name, email, password, password2 } = formData
 
@@ -35,6 +42,31 @@ export default function SignUpPage(): JSX.Element {
       if (user) {
         console.log('Registration successful!')
         try { localStorage.setItem('user', JSON.stringify(user)) } catch (_) {}
+        // If coming from an invite, auto-accept and redirect to chat
+        try {
+          const fromInvite = (location.state as any)?.fromInvite
+          const authToken = (user as any)?.token || (JSON.parse(localStorage.getItem('user') || 'null')?.token)
+          if (fromInvite && authToken) {
+            const res = await axios.post(
+              `${API_URL}/disagreements/invite/${fromInvite}`,
+              {},
+              { headers: { Authorization: `Bearer ${authToken}` } }
+            )
+            const { disagreementId, code } = (res.data as any) || {}
+            if (res.status === 202 || code === 'PENDING_APPROVAL') {
+              // Pending approval — send back to invite page
+              navigate(`/invite/${fromInvite}`)
+              return
+            }
+            if (disagreementId) {
+              navigate(`/disagreement/${disagreementId}`)
+              return
+            }
+          }
+        } catch (autoErr) {
+          console.error('Auto-accept invite after signup failed:', autoErr)
+        }
+        // Default: go to dashboard
         navigate('/dashboard')
       }
     } catch (error: any) {

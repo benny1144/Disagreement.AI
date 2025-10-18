@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Component, lazy, Suspense } from 'react';
 import Layout from './components/Layout';
+import PublicLayout from '@/components/layout/PublicLayout';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import CookieConsentBanner from './components/CookieConsentBanner.jsx';
@@ -64,21 +65,23 @@ function App() {
                             </div>
                         }>
                             <Routes>
-                              {/* All pages now render inside the Layout component */}
-                              <Route path="/" element={<Layout />}>
-                                {/* The child routes' elements will be rendered by the <Outlet> in Layout.jsx */}
-                                <Route index element={<HomePage />} />
-                                <Route path="login" element={<LoginPage />} />
-                                <Route path="register" element={<SignUpPage />} />
-                                <Route path="invite/:token" element={<InviteAcceptPage />} />
-                                <Route path="contact" element={<ContactPage />} />
-                                <Route path="privacy" element={<PrivacyPage />} />
-                                <Route path="terms" element={<TermsPage />} />
-                                <Route path="cookies" element={<CookiePolicyPage />} />
-                                <Route path="dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
-                                <Route path="profile" element={<ProtectedRoute><UserAccountPage /></ProtectedRoute>} />
-                                <Route path="app/contact" element={<ProtectedRoute><InAppContactPage /></ProtectedRoute>} />
-                                <Route path="disagreement/:id" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
+                              {/* Public routes wrapped with PublicLayout */}
+                              <Route element={<PublicLayout />}>
+                                <Route path="/" element={<HomePage />} />
+                                <Route path="/login" element={<LoginPage />} />
+                                <Route path="/register" element={<SignUpPage />} />
+                                <Route path="/invite/:token" element={<InviteAcceptPage />} />
+                                <Route path="/contact" element={<ContactPage />} />
+                                <Route path="/privacy" element={<PrivacyPage />} />
+                                <Route path="/terms" element={<TermsPage />} />
+                                <Route path="/cookies" element={<CookiePolicyPage />} />
+                              </Route>
+                              {/* App/protected routes with existing Layout */}
+                              <Route element={<Layout />}>
+                                <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+                                <Route path="/profile" element={<ProtectedRoute><UserAccountPage /></ProtectedRoute>} />
+                                <Route path="/app/contact" element={<ProtectedRoute><InAppContactPage /></ProtectedRoute>} />
+                                <Route path="/disagreement/:id" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
                               </Route>
                             </Routes>
                         </Suspense>

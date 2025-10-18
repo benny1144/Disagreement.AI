@@ -56,17 +56,18 @@ const registerUser = asyncHandler(async (req, res) => {
 // @route   POST /api/users/login
 // @access  Public
 const loginUser = asyncHandler(async (req, res) => {
-    const { email, password } = req.body;
+    const { email, password, rememberMe } = req.body || {};
 
     // Check for user email
     const user = await User.findOne({ email });
 
     if (user && (await bcrypt.compare(password, user.password))) {
+        const expiresIn = rememberMe ? '30d' : '24h';
         res.json({
             _id: user.id,
             name: user.name,
             email: user.email,
-            token: generateToken(user._id),
+            token: generateToken(user._id, expiresIn),
         });
     } else {
         res.status(400);
@@ -134,13 +135,13 @@ const deleteMe = asyncHandler(async (req, res) => {
 });
 
 // Generate JWT
-const generateToken = (id) => {
+const generateToken = (id, expiresIn = '24h') => {
     const secret = process.env.JWT_SECRET || process.env.SECRET_KEY;
     if (!secret) {
         throw new Error('Server misconfigured: JWT secret is not set (expected JWT_SECRET or SECRET_KEY)');
     }
     return jwt.sign({ id }, secret, {
-        expiresIn: '30d',
+        expiresIn,
     });
 };
 

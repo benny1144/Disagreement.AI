@@ -122,7 +122,9 @@ const getInviteDetails = asyncHandler(async (req, res) => {
 const acceptInvite = asyncHandler(async (req, res) => {
     const { token } = req.params;
     const userToJoin = req.user;
+    console.log('[acceptInvite] START', { token, userId: userToJoin?.id, email: userToJoin?.email });
 
+    console.log('[acceptInvite] Finding disagreement by token');
     const disagreement = await Disagreement.findOne({
         $or: [
             { 'publicInviteToken.token': token, 'publicInviteToken.enabled': true },
@@ -131,12 +133,17 @@ const acceptInvite = asyncHandler(async (req, res) => {
     });
 
     if (!disagreement) {
+        console.warn('[acceptInvite] No disagreement found for token');
         res.status(404);
         throw new Error('Invitation not found, has expired, or has already been accepted.');
     }
 
+    const beforeActive = Array.isArray(disagreement.participants) ? disagreement.participants.filter(p => p.status === 'active').length : 0;
+    console.log('[acceptInvite] Disagreement found', { id: disagreement._id?.toString(), beforeActive, aiSent: disagreement.aiOnboardingMessageSent });
+
     // Check if user is already a participant
     if (disagreement.participants.some(p => p.user.equals(userToJoin.id))) {
+        console.warn('[acceptInvite] User already participant');
         res.status(400);
         throw new Error('You are already a participant in this disagreement.');
     }
@@ -146,7 +153,9 @@ const acceptInvite = asyncHandler(async (req, res) => {
     
     // SCENARIO 1: Direct Invite (Trusted, Auto-Approved)
     if (directInvite) {
+        console.log('[acceptInvite] Direct invite found', { inviteEmail: directInvite.email });
         if (directInvite.email.toLowerCase() !== userToJoin.email.toLowerCase()) {
+            console.warn('[acceptInvite] Direct invite email mismatch', { inviteEmail: directInvite.email, userEmail: userToJoin.email });
             res.status(401);
             throw new Error('This invitation is intended for a different user.');
         }
@@ -156,9 +165,11 @@ const acceptInvite = asyncHandler(async (req, res) => {
     } 
     // SCENARIO 2: Public Invite (Untrusted, Requires Approval)
     else {
+        console.log('[acceptInvite] Public invite flow');
         // Public invite: queue for creator approval via pendingInvitations
         const alreadyPending = Array.isArray(disagreement.pendingInvitations) && disagreement.pendingInvitations.some(u => u.equals(userToJoin.id));
         const alreadyParticipant = disagreement.participants.some(p => p.user.equals(userToJoin.id));
+        console.log('[acceptInvite] alreadyPending/alreadyParticipant', { alreadyPending, alreadyParticipant });
         if (!alreadyPending && !alreadyParticipant) {
             if (!Array.isArray(disagreement.pendingInvitations)) disagreement.pendingInvitations = [];
             disagreement.pendingInvitations.push(userToJoin.id);
@@ -166,24 +177,35 @@ const acceptInvite = asyncHandler(async (req, res) => {
         pendingApproval = true;
     }
 
+    console.log('[acceptInvite] Saving disagreement changes…');
     await disagreement.save();
+    const afterActiveSaved = Array.isArray(disagreement.participants) ? disagreement.participants.filter(p => p.status === 'active').length : 0;
+    console.log('[acceptInvite] Saved', { afterActiveSaved, pendingApproval });
+
     if (pendingApproval) {
+        console.log('[acceptInvite] Pending approval path returning 202');
         return res.status(202).json({ code: 'PENDING_APPROVAL', message: 'Your request to join is pending creator approval.', disagreementId: disagreement._id });
     }
 
     // Trigger AI onboarding if we now have at least two active participants and it's not sent yet
     try {
-            const updatedDisagreement = await Disagreement.findById(disagreement._id)
+        console.log('[acceptInvite] Re-fetching disagreement to evaluate onboarding trigger…');
+        const updatedDisagreement = await Disagreement.findById(disagreement._id)
         const activeCount = Array.isArray(updatedDisagreement?.participants)
             ? updatedDisagreement.participants.filter(p => p.status === 'active').length
             : 0
         console.log(`[acceptInvite] Active participants after accept: ${activeCount}, flag sent=${updatedDisagreement?.aiOnboardingMessageSent}`)
         if (activeCount >= 2 && !updatedDisagreement.aiOnboardingMessageSent) {
-            console.log('[acceptInvite] Triggering AI onboarding message...')
+            console.log('[acceptInvite] Triggering AI onboarding message…')
             await postOnboardingMessage(updatedDisagreement._id)
+            console.log('[acceptInvite] postOnboardingMessage completed')
+        } else {
+            console.log('[acceptInvite] Onboarding condition not met or already sent')
         }
     } catch (e) {
         console.error('Error evaluating AI onboarding trigger (acceptInvite):', e?.message || e)
+    } finally {
+        console.log('[acceptInvite] END')
     }
 
     return res.status(200).json({ status: 'approved', message: 'Invitation accepted successfully.', disagreementId: disagreement._id });
@@ -266,6 +288,7 @@ const createDirectInvite = asyncHandler(async (req, res) => {
 // @access  Private
 const manageParticipant = asyncHandler(async (req, res) => {
     const { participantUserId, action } = req.body; // action can be 'approve' or 'remove'
+    console.log('[manageParticipant] START', { action, participantUserId, byUser: req.user?.id, disagreementId: req.params?.id });
     if (!participantUserId || !action) {
         res.status(400);
         throw new Error('Participant user ID and action are required.');
@@ -274,12 +297,14 @@ const manageParticipant = asyncHandler(async (req, res) => {
     const disagreement = await Disagreement.findById(req.params.id);
 
     if (!disagreement) {
+        console.warn('[manageParticipant] Disagreement not found');
         res.status(404);
         throw new Error('Disagreement not found');
     }
 
     // AUTH CHECK: Only creator can manage participants
     if (!disagreement.creator.equals(req.user.id)) {
+        console.warn('[manageParticipant] Unauthorized user', { byUser: req.user?.id });
         res.status(401);
         throw new Error('Not authorized to manage participants');
     }
@@ -290,19 +315,28 @@ const manageParticipant = asyncHandler(async (req, res) => {
         throw new Error('Participant not found in this disagreement.');
     }
 
+    const beforeActive = disagreement.participants.filter(p => p.status === 'active').length;
+
     if (action === 'approve') {
+        console.log('[manageParticipant] Approving participant');
         participant.status = 'active';
     } else if (action === 'remove') {
+        console.log('[manageParticipant] Removing participant');
         disagreement.participants = disagreement.participants.filter(p => !p.user.equals(participantUserId));
     } else {
         res.status(400);
         throw new Error("Invalid action. Must be 'approve' or 'remove'.");
     }
 
+    console.log('[manageParticipant] Saving changes…');
     await disagreement.save();
+    const afterActive = disagreement.participants.filter(p => p.status === 'active').length;
+    console.log('[manageParticipant] Saved', { beforeActive, afterActive });
+
     const updatedDisagreement = await Disagreement.findById(req.params.id)
       .populate('participants.user', 'name email')
       .populate('messages.sender', 'name');
+    console.log('[manageParticipant] END');
     res.status(200).json(updatedDisagreement);
 });
 
@@ -314,6 +348,7 @@ const manageParticipant = asyncHandler(async (req, res) => {
 // New: Approve/Deny pending invitations
 const approveInvitation = asyncHandler(async (req, res) => {
     const { userId } = req.body || {};
+    console.log('[approveInvitation] START', { approverId: req.user?.id, targetUserId: userId, disagreementId: req.params?.id });
     if (!userId) {
         res.status(400);
         throw new Error('userId is required');
@@ -321,15 +356,20 @@ const approveInvitation = asyncHandler(async (req, res) => {
 
     const disagreement = await Disagreement.findById(req.params.id);
     if (!disagreement) {
+        console.warn('[approveInvitation] Disagreement not found');
         res.status(404);
         throw new Error('Disagreement not found');
     }
 
     // Only creator can approve
     if (!disagreement.creator.equals(req.user.id)) {
+        console.warn('[approveInvitation] Unauthorized approver', { approverId: req.user?.id });
         res.status(401);
         throw new Error('Not authorized to approve invitations');
     }
+
+    const beforeActive = Array.isArray(disagreement.participants) ? disagreement.participants.filter(p => p.status === 'active').length : 0;
+    console.log('[approveInvitation] Before update', { beforeActive, pendingCount: (disagreement.pendingInvitations || []).length });
 
     // Remove from pendingInvitations
     if (Array.isArray(disagreement.pendingInvitations)) {
@@ -343,6 +383,7 @@ const approveInvitation = asyncHandler(async (req, res) => {
         disagreement.participants.push({ user: userId, status: 'active' });
     }
 
+    console.log('[approveInvitation] Saving disagreement…');
     await disagreement.save();
     const updated = await Disagreement.findById(req.params.id)
         .populate('creator', 'name')
@@ -357,11 +398,16 @@ const approveInvitation = asyncHandler(async (req, res) => {
             : 0
         console.log(`[approveInvitation] Active participants after approve: ${activeCount}, flag sent=${updated?.aiOnboardingMessageSent}`)
         if (activeCount >= 2 && !updated.aiOnboardingMessageSent) {
-            console.log('[approveInvitation] Triggering AI onboarding message...')
+            console.log('[approveInvitation] Triggering AI onboarding message…')
             await postOnboardingMessage(updated._id)
+            console.log('[approveInvitation] postOnboardingMessage completed')
+        } else {
+            console.log('[approveInvitation] Onboarding condition not met or already sent')
         }
     } catch (e) {
         console.error('Error evaluating AI onboarding trigger (approveInvitation):', e?.message || e)
+    } finally {
+        console.log('[approveInvitation] END')
     }
 
     res.status(200).json(updated);

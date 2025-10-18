@@ -10,7 +10,7 @@ export default function UseCasesSection() {
             <div className="mx-auto max-w-7xl px-6 lg:px-8">
                 <div className="mx-auto max-w-2xl text-center">
                     <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">Designed for Any Disagreement</h2>
-                    <p className="mx-auto mt-4 max-w-2xl text-lg leading-8 text-gray-600">
+                    <p className="mx-auto mt-4 max-w-2xl text-lg leading-8 text-gray-600 md:text-left">
                         Our platform is built to handle conflicts of all shapes and sizes, providing a fair and structured path to resolution for everyone.
                     </p>
                 </div>

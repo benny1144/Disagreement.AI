@@ -10,19 +10,29 @@ const AI_USER_EMAIL = 'ai-mediator@disagreement.ai'
  * @param {string} disagreementId
  */
 export const postOnboardingMessage = async (disagreementId) => {
+  console.log('[aiService.postOnboardingMessage] START', { disagreementId })
   try {
     // Look up the AI user account
+    console.log('[aiService.postOnboardingMessage] Looking up AI user by email', AI_USER_EMAIL)
     const aiUser = await User.findOne({ email: AI_USER_EMAIL })
     if (!aiUser) {
-      console.error('CRITICAL: The AI Mediator user account does not exist in the database.')
+      console.error('[aiService.postOnboardingMessage] CRITICAL: AI Mediator user not found')
       return
     }
 
+    console.log('[aiService.postOnboardingMessage] Fetching disagreement by ID')
     const disagreement = await Disagreement.findById(disagreementId)
-    if (!disagreement) return
+    if (!disagreement) {
+      console.error('[aiService.postOnboardingMessage] Disagreement not found')
+      return
+    }
 
     // Prevent duplicate messages
-    if (disagreement.aiOnboardingMessageSent) return
+    console.log('[aiService.postOnboardingMessage] aiOnboardingMessageSent?', disagreement.aiOnboardingMessageSent)
+    if (disagreement.aiOnboardingMessageSent) {
+      console.log('[aiService.postOnboardingMessage] Already sent. Skipping.')
+      return
+    }
 
     const welcomeMessage = {
       sender: aiUser._id,
@@ -31,13 +41,19 @@ export const postOnboardingMessage = async (disagreementId) => {
       isAIMessage: true,
     }
 
+    const beforeCount = Array.isArray(disagreement.messages) ? disagreement.messages.length : 0
+    console.log('[aiService.postOnboardingMessage] Pushing welcome message. Current message count:', beforeCount)
     disagreement.messages.push(welcomeMessage)
     disagreement.aiOnboardingMessageSent = true
+    console.log('[aiService.postOnboardingMessage] Saving disagreement…')
     await disagreement.save()
+    const afterCount = Array.isArray(disagreement.messages) ? disagreement.messages.length : 0
 
-    console.log(`AI onboarding message posted to disagreement ${disagreementId}`)
+    console.log('[aiService.postOnboardingMessage] SUCCESS: saved. Message count now:', afterCount, 'flag:', disagreement.aiOnboardingMessageSent)
   } catch (error) {
-    console.error(`Error posting AI onboarding message: ${error?.message || error}`)
+    console.error('[aiService.postOnboardingMessage] ERROR:', error?.message || error)
+  } finally {
+    console.log('[aiService.postOnboardingMessage] END', { disagreementId })
   }
 }
 

@@ -50,21 +50,28 @@ function CreateDisagreementModal({ isOpen, onClose, onCreate }) {
       return;
     }
 
-    // Step 1: If we haven't generated an AI summary yet, do that first
+    // Step 1: If we haven't generated AI suggestions yet, do that first
     if (!aiReady) {
       setAiLoading(true);
       try {
-        const res = await axios.post(`${AI_API_BASE}/summarize-description`, { description: trimmedDescription });
-        const summary = (res?.data?.summary || '').toString().trim();
+        const [descRes, titleRes] = await Promise.all([
+          axios.post(`${AI_API_BASE}/summarize-description`, { description: trimmedDescription }),
+          axios.post(`${AI_API_BASE}/summarize-title`, { title: trimmedTitle, description: trimmedDescription }),
+        ]);
+        const summary = (descRes?.data?.summary || '').toString().trim();
         const nextDesc = summary || trimmedDescription;
+        const newTitle = (titleRes?.data?.title || '').toString().trim();
+        const nextTitle = newTitle || trimmedTitle;
         setDescription(nextDesc);
+        setTitle(nextTitle);
         setAiReady(true);
       } catch (err) {
-        const message = err?.response?.data?.message || err?.message || 'Failed to generate AI summary. You can refine manually.';
+        const message = err?.response?.data?.message || err?.message || 'Failed to generate AI suggestions. You can refine manually.';
         setError(message);
-        // Allow user to refine manually with their original description
+        // Allow user to refine manually with their original inputs
         setAiReady(true);
         setDescription(trimmedDescription);
+        setTitle(trimmedTitle);
       } finally {
         setAiLoading(false);
       }

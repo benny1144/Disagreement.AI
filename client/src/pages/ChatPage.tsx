@@ -308,7 +308,7 @@ export default function ChatPage(): JSX.Element {
 
               {/* AI legal disclaimer placed below the composer */}
               <div className="px-4 md:px-0 pt-2">
-                <p className="text-sm italic text-slate-500">Please note: The AI does not provide legally binding advice.</p>
+                <p className="text-xs italic text-slate-500 text-right">The AI doesn't provide legally binding advice.</p>
               </div>
 
               {/* Invitation Modals */}

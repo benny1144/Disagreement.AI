@@ -19,7 +19,7 @@ export default function HowItWorksSection() {
                         <Brain className="w-7 h-7 text-[#5D5FEF]" />
                     </div>
                     <h3 className="text-xl font-bold text-foreground">2. Detailed AI Analysis</h3>
-                    <p className="text-muted-foreground leading-relaxed">
+                    <p className="text-muted-foreground leading-relaxed md:text-left">
                         Our transparent AI reviews both sides, identifies key issues, and applies relevant precedents and principles.
                     </p>
                 </Card>
@@ -28,7 +28,7 @@ export default function HowItWorksSection() {
                         <Handshake className="w-7 h-7 text-[#5D5FEF]" />
                     </div>
                     <h3 className="text-xl font-bold text-foreground">3. Fair Resolution</h3>
-                    <p className="text-muted-foreground leading-relaxed">
+                    <p className="text-muted-foreground leading-relaxed md:text-left">
                         Receive a detailed, unbiased resolution with clear reasoning. Both parties can review and accept the outcome.
                     </p>
                 </Card>

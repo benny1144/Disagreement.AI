@@ -1,21 +1,16 @@
 import HeroSection from '@/components/landing/HeroSection';
-import ExplainerVideoSection from '@/components/landing/ExplainerVideoSection';
 import HowItWorksSection from '@/components/landing/HowItWorksSection';
 import FeaturesSection from '@/components/landing/FeaturesSection';
 import GlassBoxSection from '@/components/landing/GlassBoxSection';
 import UseCasesSection from '@/components/landing/UseCasesSection';
 import TestimonialsSection from '@/components/landing/TestimonialsSection';
 import FinalCTASection from '@/components/landing/FinalCTASection';
-import Footer from '@/components/landing/Footer';
-import PublicHeader from "@/components/layout/PublicHeader";
 
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-white font-sans">
-      <PublicHeader />
       <main>
         <HeroSection />
-        <ExplainerVideoSection />
         <HowItWorksSection />
         <FeaturesSection />
         <GlassBoxSection />
@@ -23,7 +18,6 @@ export default function HomePage() {
         <TestimonialsSection />
         <FinalCTASection />
       </main>
-      <Footer />
     </div>
   );
 }

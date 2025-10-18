@@ -1,9 +1,8 @@
-/// <reference types="node" />
 // noinspection SpellCheckingInspection
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
-import { createServer } from 'node:http';
+import { createServer } from 'http';
 import { Server } from 'socket.io';
 import connectDB from './config/db.js';
 
@@ -13,8 +12,8 @@ import disagreementRoutes from './routes/disagreementRoutes.js';
 import contactRoutes from './routes/contactRoutes.js'; // --- (Step 1: Import the new contact routes) ---
 
 // Load environment variables from project root, then local, then fallback to services/.env if needed
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import path from 'path';
+import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Root-level .env (always resolve relative to this file)

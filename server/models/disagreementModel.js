@@ -34,6 +34,12 @@ const directInviteSchema = mongoose.Schema({
 });
 
 const disagreementSchema = mongoose.Schema({
+    caseId: {
+        type: String,
+        unique: true,
+        sparse: true,
+        trim: true,
+    },
     title: { // Formerly 'text'
         type: String,
         required: [true, 'Please add a title'],

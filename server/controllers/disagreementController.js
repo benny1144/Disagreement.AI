@@ -7,11 +7,6 @@ import emailService from '../services/emailService.js';
 import { postOnboardingMessage } from '../services/aiService.js';
 const { sendDirectInviteEmail } = emailService;
 
-// Helper function to check if a user is an active participant
-const isUserActiveParticipant = (disagreement, userId) => {
-    return disagreement.participants.some(p => p.user.equals(userId) && p.status === 'active');
-};
-
 // Helper: check if user is listed as a participant (any status)
 const isUserAnyParticipant = (disagreement, userId) => {
     return disagreement.participants.some(p => p.user.equals(userId));
@@ -45,7 +40,21 @@ const createDisagreement = asyncHandler(async (req, res) => {
         res.status(400);
         throw new Error('Please provide both a title and a description');
     }
+
+    // Generate a unique Case ID with pattern DAI-YYYY-MM-XXX
+    const now = new Date();
+    const yyyy = now.getUTCFullYear();
+    const mm = String(now.getUTCMonth() + 1).padStart(2, '0');
+    const prefix = `DAI-${yyyy}-${mm}-`;
+
+    // Count existing disagreements for this year-month to generate sequence
+    const monthRegex = new RegExp(`^${prefix}`);
+    const countForMonth = await Disagreement.countDocuments({ caseId: { $regex: monthRegex } });
+    const seq = String(countForMonth + 1).padStart(3, '0');
+    const caseId = `${prefix}${seq}`;
+
     const disagreement = await Disagreement.create({
+        caseId,
         title,
         description,
         creator: req.user.id,

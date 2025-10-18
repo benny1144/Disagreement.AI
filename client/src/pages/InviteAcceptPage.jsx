@@ -48,7 +48,7 @@ export default function InviteAcceptPage() {
         setLoading(false)
       }
     }
-    fetchDetails()
+    void fetchDetails()
   }, [token])
 
   const isLoggedIn = (() => {

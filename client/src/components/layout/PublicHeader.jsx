@@ -38,7 +38,7 @@ export default function PublicHeader() {
 
         {/* Desktop actions */}
         <div className="flex items-center gap-3">
-          <Link to={{ pathname: '/contact' }} className="text-slate-700 hover:text-slate-900 font-medium">Contact</Link>
+          <Link to={{ pathname: '/contact' }} className="hidden md:inline-block text-slate-700 hover:text-slate-900 font-medium">Contact</Link>
           <Link to={{ pathname: '/login' }}>
             <Button variant="outline" className="rounded-full px-5">
               Login

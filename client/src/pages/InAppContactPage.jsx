@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import ContactForm from '../components/ContactForm.jsx'
+import ContactForm from '../components/ContactForm'
 
 export default function InAppContactPage() {
   return (

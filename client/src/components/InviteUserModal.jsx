@@ -59,6 +59,7 @@ function InviteUserModal({ isOpen, onClose, disagreementId, publicInviteToken })
         textArea.value = shareableLink;
         document.body.appendChild(textArea);
         textArea.select();
+        // noinspection JSDeprecatedSymbols
         document.execCommand('copy');
         document.body.removeChild(textArea);
         setCopySuccess('Link copied!');

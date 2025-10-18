@@ -2,9 +2,9 @@ import React, { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import axios from 'axios'
 import { io, Socket } from 'socket.io-client'
-import InviteUserModal from '../components/InviteUserModal.jsx'
-import InvitationManager from '../components/InvitationManager.jsx'
-import { useAuth } from '../contexts/AuthContext'
+import InviteUserModal from '../components/InviteUserModal'
+import InvitationManager from '../components/InvitationManager'
+import { useAuth } from '@/contexts/AuthContext'
 
 // Derive API base from environment; fallback to same-origin relative /api
 const envApi = typeof import.meta !== 'undefined' ? import.meta.env?.VITE_API_URL : undefined
@@ -78,7 +78,8 @@ export default function ChatPage(): JSX.Element {
       }
     }
 
-    if (id) fetchDisagreement()
+    // noinspection JSIgnoredPromiseFromCall
+    if (id) void fetchDisagreement()
   }, [id, token])
 
   // Socket setup
@@ -171,6 +172,9 @@ export default function ChatPage(): JSX.Element {
                 <div className="px-4 md:px-0 pt-4 md:pt-0">
                   <h2 className="text-xl font-bold text-slate-800 truncate">{disagreement.title || 'Disagreement'}</h2>
                   <p className="text-sm font-semibold text-blue-600">AI Mediator Mode</p>
+                  {Boolean((disagreement as any)?.caseId) && (
+                    <p className="text-xs text-slate-500 font-mono">Case ID: {(disagreement as any).caseId}</p>
+                  )}
                 </div>
                 {isCreator && (
                   <div className="flex items-center gap-2">

@@ -1,23 +1,23 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Component, lazy, Suspense } from 'react';
-import Layout from './components/Layout.jsx';
+import Layout from './components/Layout';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import CookieConsentBanner from './components/CookieConsentBanner.jsx';
 
 // --- (Step 1: Update the HomePage import to point to the new .tsx file) ---
-const HomePage = lazy(() => import('./pages/HomePage.jsx'));
+const HomePage = lazy(() => import('./pages/HomePage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const SignUpPage = lazy(() => import('./pages/SignUpPage'));
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const ChatPage = lazy(() => import('./pages/ChatPage'));
 const InviteAcceptPage = lazy(() => import('./pages/InviteAcceptPage'));
-const UserAccountPage = lazy(() => import('./pages/UserAccountPage.jsx'));
-const ContactPage = lazy(() => import('./pages/ContactPage.jsx'));
-const PrivacyPage = lazy(() => import('./pages/PrivacyPage.jsx'));
-const TermsPage = lazy(() => import('./pages/TermsPage.jsx'));
-const CookiePolicyPage = lazy(() => import('./pages/CookiePolicyPage.jsx'));
-const InAppContactPage = lazy(() => import('./pages/InAppContactPage.jsx'));
+const UserAccountPage = lazy(() => import('./pages/UserAccountPage'));
+const ContactPage = lazy(() => import('./pages/ContactPage'));
+const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
+const TermsPage = lazy(() => import('./pages/TermsPage'));
+const CookiePolicyPage = lazy(() => import('./pages/CookiePolicyPage'));
+const InAppContactPage = lazy(() => import('./pages/InAppContactPage'));
 
 class ErrorBoundary extends Component {
     // ... (No changes needed in the ErrorBoundary component)

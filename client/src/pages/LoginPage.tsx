@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '@/contexts/AuthContext'
 
 export default function LoginPage(): JSX.Element {
   const [formData, setFormData] = useState({ email: '', password: '' })

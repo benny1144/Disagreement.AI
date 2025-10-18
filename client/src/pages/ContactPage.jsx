@@ -1,5 +1,5 @@
 import React from 'react'
-import ContactForm from '../components/ContactForm.jsx'
+import ContactForm from '../components/ContactForm'
 import { Link } from 'react-router-dom'
 
 export default function ContactPage() {

@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, Link as RouterLink } from 'react-router-dom'
 import axios from 'axios'
-import { useAuth } from '../contexts/AuthContext'
-import CreateDisagreementModal from '../components/CreateDisagreementModal.jsx'
-import InviteUserModal from '../components/InviteUserModal.jsx'
+import { useAuth } from '@/contexts/AuthContext'
+import CreateDisagreementModal from '../components/CreateDisagreementModal'
+import InviteUserModal from '../components/InviteUserModal'
 
 // Derive API base from environment; fallback to same-origin relative /api
 const envApi = typeof import.meta !== 'undefined' ? import.meta.env?.VITE_API_URL : undefined
@@ -55,7 +55,7 @@ export default function DashboardPage(): JSX.Element {
       }
     }
 
-    fetchData()
+    void fetchData()
   }, [token])
 
   const handleLogout = () => {
@@ -124,30 +124,35 @@ export default function DashboardPage(): JSX.Element {
                   <ul className="space-y-3">
                     {disagreements.map((d) => (
                       <li key={d._id} className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-all">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <RouterLink to={`/disagreement/${d._id}`} className="block">
-                              <div className="text-base md:text-lg font-bold text-slate-800 truncate">{d.title || 'Untitled Disagreement'}</div>
-                            </RouterLink>
-                            <p className="text-xs text-slate-500 font-mono mt-1 break-all">ID: {(d as any)?._id}</p>
-                            <div className="text-slate-600 mt-1 text-sm md:text-base">
-                              {(() => {
-                                const parts = (d as any)?.participants
-                                if (Array.isArray(parts) && parts.length) {
-                                  const names = parts.map((p: any) => (p?.user?.name || p?.name)).filter(Boolean)
-                                  if (names.length) return `Participants: ${names.join(', ')}`
-                                }
-                                return 'Participants: You'
-                              })()}
-                            </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-slate-500">{(d as any)?.caseId || `ID: ${(d as any)?._id}`}</p>
+                          <RouterLink to={`/disagreement/${d._id}`} className="block">
+                            <div className="text-base md:text-lg font-bold text-slate-800 truncate">{d.title || 'Untitled Disagreement'}</div>
+                          </RouterLink>
+                          <div className="text-slate-600 mt-1 text-sm md:text-base">
+                            {(() => {
+                              const parts = (d as any)?.participants
+                              if (Array.isArray(parts) && parts.length) {
+                                const names = parts.map((p: any) => (p?.user?.name || p?.name)).filter(Boolean)
+                                if (names.length) return `Participants: ${names.join(', ')}`
+                              }
+                              return 'Participants: You'
+                            })()}
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => openInviteFor(d)}
-                            className="shrink-0 inline-flex items-center rounded-md bg-blue-600 text-white font-semibold shadow-sm hover:bg-blue-500 px-3 py-1.5 text-sm md:text-base"
-                          >
-                            Invite
-                          </button>
+                          <div className="flex items-center gap-2 mt-3">
+                            <RouterLink to={`/disagreement/${d._id}`} className="inline-block">
+                              <button className="inline-flex items-center rounded-md bg-blue-600 text-white font-semibold shadow-sm hover:bg-blue-500 px-3 py-1.5 text-sm md:text-base">
+                                Open Chat
+                              </button>
+                            </RouterLink>
+                            <button
+                              type="button"
+                              onClick={() => openInviteFor(d)}
+                              className="inline-flex items-center rounded-md bg-slate-700 text-white font-semibold shadow-sm hover:bg-slate-600 px-3 py-1.5 text-sm md:text-base"
+                            >
+                              Invite
+                            </button>
+                          </div>
                         </div>
                       </li>
                     ))}

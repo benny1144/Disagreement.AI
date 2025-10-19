@@ -263,6 +263,10 @@ const createDirectInvite = asyncHandler(async (req, res) => {
         throw new Error('Disagreement not found');
     }
 
+    // Defensive: ensure array fields are initialized to avoid TypeError on legacy docs
+    if (!Array.isArray(disagreement.participants)) disagreement.participants = [];
+    if (!Array.isArray(disagreement.directInvites)) disagreement.directInvites = [];
+
     // AUTH CHECK: Any participant (any status) can send direct invites
     const isParticipant = disagreement.participants.some(p => p.user.equals(req.user.id));
     if (!isParticipant) {

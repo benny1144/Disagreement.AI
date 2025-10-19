@@ -225,3 +225,49 @@ Do not be overly sensitive. The goal is to prevent abuse, not to police tone. On
     return res.status(400).json({ result: 'FAIL', message: 'The provided text does not meet neutrality standards.' });
   }
 }
+
+// New AI service: Clarifying Introduction for AI Mediator
+export async function getAIClarifyingIntroduction(description) {
+  const desc = (description || '').toString().trim();
+  const systemPrompt = `You are an expert AI mediator for Disagreement.AI. Your role is to initiate a constructive dialogue. You will be given the description of a disagreement.
+
+Your task is to write the *very first message* in the chat. Your message must be calm, neutral, and professional.
+
+Follow this structure precisely:
+1.  A brief, welcoming statement acknowledging both parties are present.
+2.  A concise, one-sentence summary of the core issue based on the description to show you understand the context.
+3.  One or two open-ended, clarifying questions directed at both parties to start the conversation.
+
+Your questions should be designed to elicit facts and perspectives, not to assign blame.`;
+
+  let content = '';
+  try {
+    const completion = await openai.chat.completions.create({
+      model: process.env.OPENAI_INTRO_MODEL || process.env.OPENAI_SUMMARY_MODEL || 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: desc ? `Disagreement description:\n\n${desc}` : 'No description provided.' },
+      ],
+      temperature: 0.3,
+      max_tokens: 220,
+    });
+    content = (completion?.choices?.[0]?.message?.content || '').trim();
+  } catch (e) {
+    console.error('[AI] getAIClarifyingIntroduction error:', e?.message || e);
+  }
+
+  if (!content) {
+    // Safe fallback content
+    const fallback = [];
+    fallback.push('Welcome — I see both of you are here.');
+    if (desc) {
+      fallback.push(`From your description, it sounds like the core issue is: ${desc.slice(0, 140)}${desc.length > 140 ? '...' : ''}`);
+    } else {
+      fallback.push('I understand there is a disagreement you’d like to discuss.');
+    }
+    fallback.push('To get us started: What outcome would each of you consider fair, and what key facts do you think are most important to establish?');
+    content = fallback.join(' ');
+  }
+
+  return content;
+}

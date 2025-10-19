@@ -26,7 +26,7 @@ export default function InviteAcceptPage() {
   useEffect(() => {
     const fetchDetails = async () => {
       if (!token) {
-        setError('Invalid invitation link.')
+        setError('The invitation link is invalid.')
         setLoading(false)
         return
       }
@@ -173,7 +173,7 @@ export default function InviteAcceptPage() {
                   {!isLoggedIn && (
                     <p className="text-sm text-slate-600">
                       New here?{' '}
-                      <Link className="text-blue-600 hover:underline" to="/register">Create an account</Link>
+                      <Link className="text-blue-600 hover:underline" to={{ pathname: '/register' }}>Create an account</Link>
                     </p>
                   )}
                 </div>

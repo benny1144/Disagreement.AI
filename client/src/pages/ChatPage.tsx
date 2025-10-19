@@ -47,6 +47,7 @@ export default function ChatPage(): JSX.Element {
   const [showParticipants, setShowParticipants] = useState(false)
   const participantsRef = useRef(null)
   const socketRef = useRef<Socket | null>(null)
+  const [ephemeralMessages, setEphemeralMessages] = useState<{ text: string }[]>([])
 
   const { user, token } = useAuth()
   const currentUserId = user?._id || (user as any)?.id || null
@@ -94,7 +95,8 @@ export default function ChatPage(): JSX.Element {
     socketRef.current = socket
 
     const handleConnect = () => {
-      socket.emit('join_room', { roomId: id })
+      const displayName = (user && ((user as any).name || (user as any).fullName || (user as any).username || (user as any).email)) || 'Guest'
+      socket.emit('join_room', { roomId: id, userName: displayName })
     }
     socket.on('connect', handleConnect)
 
@@ -104,11 +106,18 @@ export default function ChatPage(): JSX.Element {
         return { ...prev, messages: [...prevMsgs, data] }
       })
     }
+    const handleSystemMessage = (data: { text?: string }) => {
+      const text = (data?.text || '').toString()
+      if (!text) return
+      setEphemeralMessages((prev) => [...prev, { text }])
+    }
     socket.on('receive_message', handleReceive)
+    socket.on('systemMessage', handleSystemMessage)
 
     return () => {
       socket.off('connect', handleConnect)
       socket.off('receive_message', handleReceive)
+      socket.off('systemMessage', handleSystemMessage)
       socket.disconnect()
       socketRef.current = null
     }
@@ -294,6 +303,13 @@ export default function ChatPage(): JSX.Element {
 
               {/* Messages */}
               <div className="flex-1 overflow-y-auto px-4 md:px-0 mt-4 space-y-3">
+                {/* Ephemeral system messages (not persisted) */}
+                {ephemeralMessages.map((m, i) => (
+                  <div key={`sys-${i}`} className="text-center italic text-slate-500">
+                    {m.text}
+                  </div>
+                ))}
+
                 {disagreement.messages.length === 0 ? (
                   <p className="text-slate-500">No messages yet.</p>
                 ) : (

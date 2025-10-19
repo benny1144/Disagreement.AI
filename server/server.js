@@ -13,6 +13,7 @@ import userRoutes from './routes/userRoutes.js';
 import disagreementRoutes from './routes/disagreementRoutes.js';
 import contactRoutes from './routes/contactRoutes.js'; // --- (Step 1: Import the new contact routes) ---
 import aiRoutes from './routes/aiRoutes.js';
+import { getAIClarifyingIntroduction } from './controllers/aiController.js';
 
 // Load environment variables from project root, then local, then fallback to services/.env if needed
 import path from 'path';
@@ -258,9 +259,58 @@ app.use((err, req, res, _next) => {
 io.on('connection', (socket) => {
     console.log('A user connected:', socket.id);
 
-    socket.on('join_room', (data) => {
-        socket.join(data.roomId);
-        console.log(`User ${socket.id} joined room ${data.roomId}`);
+    socket.on('join_room', async (data) => {
+        try {
+            const roomId = data?.roomId;
+            if (!roomId) return;
+
+            socket.join(roomId);
+
+            const room = io.sockets.adapter.rooms.get(roomId);
+            const numClients = room ? room.size : 0;
+            console.log(`User ${socket.id} joined room ${roomId}. Room now has ${numClients} participants.`);
+
+            const disagreement = await Disagreement.findById(roomId);
+            if (!disagreement) return;
+
+            // NEW TRIGGER LOGIC: Proactive AI joins when second human participant arrives
+            if (numClients === 2 && !disagreement.hasAiMediatorJoined) {
+                console.log(`[socket] AI Mediator activation condition met for room ${roomId}.`);
+
+                // 1. Mark joining to prevent race conditions/duplicates
+                disagreement.hasAiMediatorJoined = true;
+                await disagreement.save();
+
+                // 2. Call the AI service for the introductory message
+                const aiIntroMessage = await getAIClarifyingIntroduction(disagreement.description);
+
+                // 3-4. Save the AI's message to the embedded messages array
+                const sender = process.env.AI_MEDIATOR_USER_ID;
+                if (!sender) {
+                    console.warn('[socket] AI_MEDIATOR_USER_ID not set; skipping AI intro message broadcast.');
+                    return;
+                }
+                disagreement.messages.push({ sender, text: aiIntroMessage, isAIMessage: true });
+                await disagreement.save();
+
+                // 5. Broadcast the AI's message to the room using existing event name
+                const saved = disagreement.messages[disagreement.messages.length - 1];
+                io.to(roomId).emit('receive_message', { _id: saved?._id, sender, text: aiIntroMessage });
+                console.log(`[socket] AI Mediator message sent to room ${roomId}.`);
+            } else if (numClients > 2) {
+                console.log(`[socket] Subsequent user join trigger met for room ${roomId}.`);
+                // Try to personalize the welcome using provided payload fields; fall back gracefully
+                const joiningUserName = (
+                    (data && (data.userName || data.username || data.name)) || ''
+                ).toString().trim() || 'there';
+                const welcomeText = `Welcome, ${joiningUserName}. Please take a moment to read the conversation history before commenting.`;
+                // Emit ephemeral system message (not persisted)
+                io.to(roomId).emit('systemMessage', { text: welcomeText });
+                console.log(`[socket] Ephemeral welcome sent to room ${roomId}.`);
+            }
+        } catch (e) {
+            console.error('[socket] Error in join_room handler:', e?.message || e);
+        }
     });
 
     socket.on('send_message', async (data) => {

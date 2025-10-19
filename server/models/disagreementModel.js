@@ -71,6 +71,10 @@ const disagreementSchema = mongoose.Schema({
         type: Boolean,
         default: false,
     },
+    hasAiMediatorJoined: {
+        type: Boolean,
+        default: false,
+    },
     resolution: {
         type: String,
     },

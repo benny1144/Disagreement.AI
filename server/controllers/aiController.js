@@ -271,3 +271,57 @@ Your questions should be designed to elicit facts and perspectives, not to assig
 
   return content;
 }
+
+// AI Active Listening: Respond when users summon the mediator directly
+export async function getAIResponseToSummon(messageHistory, summonText) {
+  const history = Array.isArray(messageHistory) ? messageHistory : [];
+  const systemPrompt = `You are an AI Mediator. You have been summoned by a user. Your task is to provide a neutral, helpful, and concise response to the user's last message.
+
+You will be given the entire chat history for context, and the user's specific message that summoned you.
+
+- Analyze the last few messages to understand the immediate context.
+- Directly address the user's question or comment.
+- Do NOT take sides.
+- Your response should be aimed at clarifying the situation or encouraging constructive dialogue.
+- Keep your response brief (2-3 sentences).`;
+
+  // Format recent history as "Name: text" lines, newest last
+  const MAX_MESSAGES = Number(process.env.AI_SUMMON_HISTORY_LIMIT || 30);
+  const sanitize = (v) => (v == null ? '' : String(v)).replace(/\s+/g, ' ').trim();
+  const formattedHistory = history
+    .slice(Math.max(0, history.length - MAX_MESSAGES))
+    .map((m) => {
+      const name = sanitize(m?.sender?.name || 'Participant');
+      const txt = sanitize(m?.text || '');
+      return `${name}: ${txt}`;
+    })
+    .join('\n');
+
+  const userContent = `CHAT HISTORY (newest last):\n${formattedHistory || '(no prior messages)'}\n\nSUMMONING MESSAGE (from user):\n${sanitize(summonText)}\n\nPlease respond in 2-3 sentences.`;
+
+  let content = '';
+  try {
+    const completion = await openai.chat.completions.create({
+      model: process.env.OPENAI_SUMMON_MODEL || process.env.OPENAI_SUMMARY_MODEL || 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userContent },
+      ],
+      temperature: 0.3,
+      max_tokens: 180,
+    });
+    content = (completion?.choices?.[0]?.message?.content || '').trim();
+  } catch (e) {
+    console.error('[AI] getAIResponseToSummon error:', e?.message || e);
+  }
+
+  if (!content) {
+    // Conservative fallback, 2 short sentences.
+    const txt = sanitize(summonText);
+    content = txt
+      ? `Thanks for the mention. I understand you're asking: "${txt.slice(0, 180)}${txt.length > 180 ? '…' : ''}". To move forward, could you clarify the key point you want addressed and what outcome you’d consider fair?`
+      : 'Thanks for the mention. Could you share the key question you want addressed and what outcome you’d consider fair?';
+  }
+
+  return content;
+}

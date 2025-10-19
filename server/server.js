@@ -6,6 +6,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import connectDB from './config/db.js';
 import Disagreement from './models/disagreementModel.js';
+import User from './models/userModel.js';
 import mongoose from 'mongoose';
 
 // Import route files
@@ -13,7 +14,7 @@ import userRoutes from './routes/userRoutes.js';
 import disagreementRoutes from './routes/disagreementRoutes.js';
 import contactRoutes from './routes/contactRoutes.js'; // --- (Step 1: Import the new contact routes) ---
 import aiRoutes from './routes/aiRoutes.js';
-import { getAIClarifyingIntroduction } from './controllers/aiController.js';
+import { getAIClarifyingIntroduction, getAIResponseToSummon } from './controllers/aiController.js';
 
 // Load environment variables from project root, then local, then fallback to services/.env if needed
 import path from 'path';
@@ -307,9 +308,19 @@ io.on('connection', (socket) => {
                 disagreement.messages.push({ sender, text: aiIntroMessage, isAIMessage: true });
                 await disagreement.save();
 
-                // 5. Broadcast the AI's message to the room using existing event name
+                // 5. Broadcast the AI's message to the room with populated sender info
                 const saved = disagreement.messages[disagreement.messages.length - 1];
-                io.to(roomId).emit('receive_message', { _id: saved?._id, sender, text: aiIntroMessage });
+                let aiUserDoc = null;
+                try {
+                    aiUserDoc = await User.findById(sender).select('name');
+                } catch (_) {}
+                const populatedAiMessage = {
+                    _id: saved?._id,
+                    sender: aiUserDoc ? { _id: aiUserDoc._id, name: aiUserDoc.name } : { _id: sender, name: 'AI Mediator' },
+                    text: aiIntroMessage,
+                    isAIMessage: true
+                };
+                io.to(roomId).emit('receive_message', populatedAiMessage);
                 console.log(`[socket] AI Mediator message sent to room ${roomId}.`);
             } else if (numClients > 2) {
                 console.log(`[socket] Subsequent user join trigger met for room ${roomId}.`);
@@ -345,8 +356,24 @@ io.on('connection', (socket) => {
             const saved = disagreement.messages[disagreement.messages.length - 1]
             console.log(`[socket] Message persisted in room ${roomId}:`, { _id: saved?._id, sender, len: disagreement.messages.length })
 
-            // Broadcast the persisted message to the specific room
-            io.to(roomId).emit('receive_message', { _id: saved?._id, sender, text })
+            // Broadcast the persisted message to the specific room with populated sender info
+            let userDoc = null
+            try {
+                userDoc = await User.findById(sender).select('name')
+            } catch (_) {}
+            const populatedMessage = {
+                _id: saved?._id,
+                sender: userDoc ? { _id: userDoc._id, name: userDoc.name } : { _id: sender, name: 'Participant' },
+                text
+            }
+            io.to(roomId).emit('receive_message', populatedMessage)
+
+            // Route the message through the AI analysis hub (non-blocking on failure)
+            try {
+                await analyzeMessage(populatedMessage, roomId, io)
+            } catch (anErr) {
+                console.error('[AI Analysis] analyzeMessage error:', anErr?.message || anErr)
+            }
         } catch (e) {
             console.error('[socket] Error handling send_message:', e?.message || e)
         }
@@ -356,6 +383,67 @@ io.on('connection', (socket) => {
         console.log('User disconnected:', socket.id);
     });
 });
+
+// AI Active Listening Hub: invoked for every new human message
+async function analyzeMessage(message, roomId, io) {
+    try {
+        const text = (message?.text || '').toString()
+        const messageText = text.toLowerCase()
+        const summonKeywords = ['@mediator', 'ai mediator', 'mediator,', 'ask the ai']
+
+        // Check for summon keywords
+        const isSummoned = summonKeywords.some(keyword => messageText.includes(keyword))
+
+        if (!isSummoned) {
+            return // no-op for now; future rules (toxicity, etc.) will go here
+        }
+
+        console.log(`[AI Analysis] Summon detected in room ${roomId}.`)
+
+        // 1. Fetch the full conversation history with sender names populated
+        const disagreement = await Disagreement.findById(roomId).populate({
+            path: 'messages.sender',
+            select: 'name'
+        })
+        if (!disagreement) return
+        const messageHistory = Array.isArray(disagreement.messages) ? disagreement.messages : []
+
+        // 2. Call the AI service to get the response
+        let aiResponseText = ''
+        try {
+            aiResponseText = await getAIResponseToSummon(messageHistory, text)
+        } catch (e) {
+            console.error('[AI Analysis] getAIResponseToSummon error:', e?.message || e)
+        }
+        if (!aiResponseText) return
+
+        // 3. Save and broadcast the AI's response
+        const aiSenderId = process.env.AI_MEDIATOR_USER_ID
+        if (!aiSenderId) {
+            console.warn('[AI Analysis] AI_MEDIATOR_USER_ID not set; cannot emit AI response to summon.')
+            return
+        }
+
+        disagreement.messages.push({ sender: aiSenderId, text: aiResponseText, isAIMessage: true })
+        await disagreement.save()
+
+        const saved = disagreement.messages[disagreement.messages.length - 1]
+        let aiUserDoc = null
+        try {
+            aiUserDoc = await User.findById(aiSenderId).select('name')
+        } catch (_) {}
+        const populatedAiMessage = {
+            _id: saved?._id,
+            sender: aiUserDoc ? { _id: aiUserDoc._id, name: aiUserDoc.name } : { _id: aiSenderId, name: 'AI Mediator' },
+            text: aiResponseText,
+            isAIMessage: true
+        }
+        io.to(roomId).emit('receive_message', populatedAiMessage)
+        console.log(`[AI Analysis] AI response sent to room ${roomId}.`)
+    } catch (err) {
+        console.error('[AI Analysis] analyzeMessage internal error:', err?.message || err)
+    }
+}
 
 const PORT = process.env.PORT || 3000;
 

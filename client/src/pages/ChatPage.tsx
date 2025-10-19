@@ -17,6 +17,7 @@ interface Message {
   _id?: string
   sender?: any
   text: string
+  isAIMessage?: boolean
 }
 
 interface Participant {
@@ -316,8 +317,8 @@ export default function ChatPage(): JSX.Element {
                   disagreement.messages.map((msg, idx) => {
                     const senderId = typeof msg.sender === 'object' ? (msg.sender?._id || (msg as any).sender?.id) : (msg as any).sender
                     const isMine = currentUserId && senderId && String(senderId) === String(currentUserId)
-                    const isAI = !isMine && (typeof msg.sender === 'string' && (msg.sender as string).toLowerCase() === 'ai' || (msg as any).isAI || (msg as any).isAIMessage)
-                    const senderName = isAI ? 'Mediator' : (typeof msg.sender === 'object' ? (msg.sender?.name || 'Participant') : (isMine ? 'You' : 'Participant'))
+                    const isAI = Boolean((msg as any)?.isAIMessage) || (typeof msg.sender === 'object' && typeof (msg as any)?.sender?.name === 'string' && ((msg as any).sender.name as string).toLowerCase() === 'ai mediator')
+                    const senderName = ((msg as any)?.sender && (msg as any).sender.name) ? (msg as any).sender.name : (isAI ? 'Mediator' : (isMine ? 'You' : 'Participant'))
 
                     return (
                       <div key={msg._id || idx} className={`flex ${isMine ? 'justify-end' : 'justify-start'} items-end gap-2`}>

@@ -114,7 +114,7 @@ export async function generateNeutralTitleAndDescription(req, res) {
       return res.status(400).json({ message: 'At least one of title or description is required' });
     }
 
-    const systemPrompt = `You are an AI assistant for Disagreement.AI. Your sole function is to analyze a user's initial problem description and rewrite it into two distinct fields: a neutral, concise 'title' and a neutral, comprehensive 'description'.\n\n**CRITICAL DIRECTIVES:**\n1.  **Strict Neutrality:** The output MUST be strictly neutral, objective, and devoid of any biased, inflammatory, or emotionally loaded language.\n2.  **JSON Format:** The output MUST be a single, valid JSON object with two keys: "title" and "description".\n3.  **No Extraneous Text:** Do not include any conversational text, markdown formatting, or anything outside of the single JSON object.\n\nThe user's text is a starting point. Your job is to refine it into a statement of fact that both parties can agree is a fair representation of the topic of disagreement.`;
+    const systemPrompt = `You are an AI assistant for Disagreement.AI. Your sole function is to analyze a user's initial problem description and rewrite it into two distinct fields: a neutral, concise 'title' and a neutral, comprehensive 'description'.\n\n**CRITICAL DIRECTIVES:**\n1.  **Strict Neutrality:** The output MUST be strictly neutral, objective, and devoid of any biased, inflammatory, or emotionally loaded language.\n2.  **Title Length:** The 'title' field MUST be 40 characters or less.\n3.  **Description Length:** The 'description' field MUST be 1000 characters or less.\n4.  **JSON Format:** The output MUST be a single, valid JSON object with two keys: "title" and "description".\n5.  **No Extraneous Text:** Do not include any conversational text, markdown formatting, or anything outside of the single JSON object.\n\nThe user's text is a starting point. Your job is to refine it into a statement of fact that both parties can agree is a fair representation of the topic of disagreement.`;
 
     let content = '';
     try {
@@ -156,6 +156,10 @@ export async function generateNeutralTitleAndDescription(req, res) {
     if (!outDesc && rawDescription) outDesc = rawDescription;
     if (!outTitle) outTitle = 'Disagreement';
     if (!outDesc) outDesc = '';
+
+    // Enforce hard character limits per spec
+    if (outTitle.length > 40) outTitle = outTitle.slice(0, 40);
+    if (outDesc.length > 1000) outDesc = outDesc.slice(0, 1000);
 
     return res.status(200).json({ title: outTitle, description: outDesc });
   } catch (err) {

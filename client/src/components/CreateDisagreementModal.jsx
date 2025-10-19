@@ -13,6 +13,7 @@ function CreateDisagreementModal({ isOpen, onClose, onCreate }) {
   const [aiLoading, setAiLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [neutralityError, setNeutralityError] = useState('');
   const navigate = useNavigate();
   const dialogRef = useRef(null);
   const descRef = useRef(null);
@@ -35,6 +36,7 @@ function CreateDisagreementModal({ isOpen, onClose, onCreate }) {
       setAiReady(false);
       setAiLoading(false);
       setError('');
+      setNeutralityError('');
       setIsSubmitting(false);
     }
   }, [isOpen]);
@@ -42,6 +44,7 @@ function CreateDisagreementModal({ isOpen, onClose, onCreate }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setNeutralityError('');
     const trimmedTitle = title.trim();
     const trimmedDescription = description.trim();
 
@@ -85,13 +88,22 @@ function CreateDisagreementModal({ isOpen, onClose, onCreate }) {
     }
 
     setIsSubmitting(true);
+    // Length check before guardrail
+    {
+      const currentDescription = description.trim();
+      if (currentDescription.length > 1000) {
+        setNeutralityError('Description must be 1000 characters or less.');
+        setIsSubmitting(false);
+        return;
+      }
+    }
     // Neutrality guardrail check (Groq)
     try {
       const currentTitle = title.trim();
       const currentDescription = description.trim();
       await axios.post(`${AI_API_BASE}/check-neutrality`, { title: currentTitle, description: currentDescription });
     } catch (guardErr) {
-      setError('Please revise your text to ensure neutrality. Our goal is to foster a productive conversation from the very beginning.');
+      setNeutralityError("Please revise your text to ensure it's neutral and non-biased. Our goal is to foster a productive conversation from the very beginning.");
       setIsSubmitting(false);
       return;
     }
@@ -157,7 +169,7 @@ function CreateDisagreementModal({ isOpen, onClose, onCreate }) {
                 type="text"
                 placeholder="Title this disagreement"
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                onChange={(e) => { setTitle(e.target.value); setNeutralityError(''); }}
                 required
                 className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
@@ -172,16 +184,20 @@ function CreateDisagreementModal({ isOpen, onClose, onCreate }) {
                 id="disagreement-description"
                 placeholder="Describe what this disagreement is about."
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                onChange={(e) => { setDescription(e.target.value); setNeutralityError(''); }}
                 required
                 rows="3"
                 ref={descRef}
                 className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+              <div className={`mt-1 text-xs text-right ${description.length > 1000 ? 'text-red-600' : 'text-slate-500'}`}>
+                {description.length} / 1000
+              </div>
             </div>
           </div>
 
           {error && <p className="mt-3 text-center text-red-600 text-sm">{error}</p>}
+          {neutralityError && <p className="mt-2 text-center text-red-600 text-sm">{neutralityError}</p>}
 
           <div className="flex flex-col sm:flex-row sm:justify-between items-stretch sm:items-center gap-3 mt-6">
             <div className="text-xs text-slate-500">

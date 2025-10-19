@@ -200,7 +200,17 @@ export async function checkNeutrality(req, res) {
       ],
     });
 
-    const decision = (completion?.choices?.[0]?.message?.content || '').trim().toUpperCase();
+    // Debug: log the exact raw response from Groq for diagnostics
+    console.log('--- GROQ GUARDRAIL RAW RESPONSE ---');
+    try {
+      console.log(JSON.stringify(completion, null, 2));
+    } catch (e) {
+      console.log(completion);
+    }
+    console.log('---------------------------------');
+
+    const groqResponse = completion?.choices?.[0]?.message?.content;
+    const decision = groqResponse && groqResponse.trim().toUpperCase();
     if (decision === 'PASS') {
       return res.status(200).json({ result: 'PASS' });
     }

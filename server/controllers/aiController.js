@@ -189,7 +189,12 @@ export async function checkNeutrality(req, res) {
       return res.status(400).json({ result: 'FAIL', message: 'The provided text does not meet neutrality standards.' });
     }
 
-    const system = 'You are an AI ethics and neutrality guardrail. Your function is to analyze text for bias or loaded language. Respond with only the single word "PASS" if the text is neutral, or the single word "FAIL" if it is not.';
+    const system = `You are a strict but fair AI content moderator. Your only job is to determine if the user's text is neutral and unbiased.
+
+- If the text is neutral, objective, and appropriate for a formal disagreement, respond with the single word: PASS
+- If the text contains personal attacks, insults, biased language, or is clearly inflammatory, respond with the single word: FAIL
+
+Do not be overly sensitive. The goal is to prevent abuse, not to police tone. Only fail text that is overtly non-neutral. Respond with ONLY "PASS" or "FAIL".`;
 
     const completion = await groq.chat.completions.create({
       model: process.env.GROQ_GUARDRAIL_MODEL || 'llama-3.1-8b-instant',

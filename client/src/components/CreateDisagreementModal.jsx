@@ -54,24 +54,19 @@ function CreateDisagreementModal({ isOpen, onClose, onCreate }) {
     if (!aiReady) {
       setAiLoading(true);
       try {
-        const [descRes, titleRes] = await Promise.all([
-          axios.post(`${AI_API_BASE}/summarize-description`, { description: trimmedDescription }),
-          axios.post(`${AI_API_BASE}/summarize-title`, { title: trimmedTitle, description: trimmedDescription }),
-        ]);
-        const summary = (descRes?.data?.summary || '').toString().trim();
-        const nextDesc = summary || trimmedDescription;
-        const newTitle = (titleRes?.data?.title || '').toString().trim();
-        const nextTitle = newTitle || trimmedTitle;
-        setDescription(nextDesc);
+        const genRes = await axios.post(`${AI_API_BASE}/generate-neutral`, { title: trimmedTitle, description: trimmedDescription });
+        const nextTitle = (genRes?.data?.title || '').toString().trim() || trimmedTitle;
+        const nextDesc = (genRes?.data?.description || '').toString().trim() || trimmedDescription;
         setTitle(nextTitle);
+        setDescription(nextDesc);
         setAiReady(true);
       } catch (err) {
         const message = err?.response?.data?.message || err?.message || 'Failed to generate AI suggestions. You can refine manually.';
         setError(message);
         // Allow user to refine manually with their original inputs
         setAiReady(true);
-        setDescription(trimmedDescription);
         setTitle(trimmedTitle);
+        setDescription(trimmedDescription);
       } finally {
         setAiLoading(false);
       }
@@ -90,10 +85,23 @@ function CreateDisagreementModal({ isOpen, onClose, onCreate }) {
     }
 
     setIsSubmitting(true);
+    // Neutrality guardrail check (Groq)
     try {
+      const currentTitle = title.trim();
+      const currentDescription = description.trim();
+      await axios.post(`${AI_API_BASE}/check-neutrality`, { title: currentTitle, description: currentDescription });
+    } catch (guardErr) {
+      setError('Please revise your text to ensure neutrality. Our goal is to foster a productive conversation from the very beginning.');
+      setIsSubmitting(false);
+      return;
+    }
+
+    try {
+      const currentTitle = title.trim();
+      const currentDescription = description.trim();
       const response = await axios.post(
         DISAGREEMENTS_API_BASE,
-        { title: trimmedTitle, description: description.trim() },
+        { title: currentTitle, description: currentDescription },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 

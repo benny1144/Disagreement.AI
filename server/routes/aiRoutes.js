@@ -1,5 +1,5 @@
 import express from 'express';
-import { summarizeDescription, summarizeTitle } from '../controllers/aiController.js';
+import { summarizeDescription, summarizeTitle, checkNeutrality, generateNeutralTitleAndDescription } from '../controllers/aiController.js';
 
 const router = express.Router();
 
@@ -7,5 +7,9 @@ const router = express.Router();
 router.post('/summarize-description', summarizeDescription);
 // POST /api/ai/summarize-title
 router.post('/summarize-title', summarizeTitle);
+// POST /api/ai/check-neutrality
+router.post('/check-neutrality', checkNeutrality);
+// POST /api/ai/generate-neutral
+router.post('/generate-neutral', generateNeutralTitleAndDescription);
 
 export default router;

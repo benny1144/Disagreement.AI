@@ -27,6 +27,18 @@ dotenv.config({ path: path.resolve(__dirname, '.env') });
 // services/.env (for Docker or alternate setups)
 dotenv.config({ path: path.resolve(__dirname, '../services/.env') });
 
+// Validate AI mediator configuration (non-fatal)
+const AI_MEDIATOR_ID = process.env.AI_MEDIATOR_USER_ID;
+const AI_MEDIATOR_ID_VALID = !!(AI_MEDIATOR_ID && (mongoose?.isValidObjectId ? mongoose.isValidObjectId(AI_MEDIATOR_ID) : mongoose.Types.ObjectId.isValid(AI_MEDIATOR_ID)));
+if (!AI_MEDIATOR_ID) {
+    console.warn('[config] AI_MEDIATOR_USER_ID is not set. The AI Mediator will not be able to post messages.');
+    console.warn('[config] To fix: Create an "AI Mediator" user in MongoDB, copy its _id, then set AI_MEDIATOR_USER_ID in Render (Dashboard -> Environment).');
+} else if (!AI_MEDIATOR_ID_VALID) {
+    console.warn(`[config] AI_MEDIATOR_USER_ID is set but not a valid MongoDB ObjectId: ${AI_MEDIATOR_ID}. Use the _id from the AI user document in MongoDB.`);
+} else {
+    console.log('[config] AI_MEDIATOR_USER_ID configured.');
+}
+
 // Connect to database
 void connectDB();
 
@@ -132,7 +144,9 @@ app.use('/api/ai', aiRoutes);
 
 // Lightweight health check (for clients to auto-detect API availability)
 app.get('/api/health', (req, res) => {
-    res.status(200).json({ status: 'ok' });
+    const aiId = process.env.AI_MEDIATOR_USER_ID || '';
+    const valid = !!(aiId && (mongoose?.isValidObjectId ? mongoose.isValidObjectId(aiId) : mongoose.Types.ObjectId.isValid(aiId)));
+    res.status(200).json({ status: 'ok', aiMediatorConfigured: Boolean(aiId), aiMediatorUserIdValid: valid });
 });
 
 // Fallback: direct /api/contact endpoint (uses global fetch in Node 18+)

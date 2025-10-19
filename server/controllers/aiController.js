@@ -192,7 +192,7 @@ export async function checkNeutrality(req, res) {
     const system = 'You are an AI ethics and neutrality guardrail. Your function is to analyze text for bias or loaded language. Respond with only the single word "PASS" if the text is neutral, or the single word "FAIL" if it is not.';
 
     const completion = await groq.chat.completions.create({
-      model: 'gemma-7b-it',
+      model: process.env.GROQ_GUARDRAIL_MODEL || 'llama-3.1-8b-instant',
       temperature: 0,
       messages: [
         { role: 'system', content: system },

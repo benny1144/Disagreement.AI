@@ -72,6 +72,10 @@ const disagreementSchema = mongoose.Schema({
     },
     resolution: {
         type: String,
+    },
+    archivedAt: {
+        type: Date,
+        default: null,
     }
 }, {
     timestamps: true,

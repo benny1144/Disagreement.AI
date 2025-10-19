@@ -48,4 +48,9 @@ router.post('/:id/invite', protect, createDirectInvite);
 // Keep GET by id available
 router.get('/:id', protect, getDisagreement);
 
+// Finalization and agreement download
+import { finalizeAgreement, downloadAgreement } from '../controllers/disagreementController.js';
+router.post('/:id/finalize', protect, finalizeAgreement);
+router.get('/:id/agreement', protect, downloadAgreement);
+
 export default router;

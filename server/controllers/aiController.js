@@ -61,7 +61,7 @@ export async function summarizeTitle(req, res) {
     }
 
     const system = 'You are a helpful assistant that rewrites titles to be concise, neutral, and non-inflammatory. Avoid names and biased phrasing.';
-    const user = `Rewrite the following title to be neutral, under 40 characters. Use the description for context to disambiguate if needed.\n\nTITLE:\n${rawTitle}\n\nDESCRIPTION (optional):\n${description}`;
+    const user = `Rewrite the following title to be neutral and under 40 characters, using the description below for context. Title: ${rawTitle}. Description: ${description}.`;
 
     let newTitle;
     try {

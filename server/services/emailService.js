@@ -101,8 +101,97 @@ export const sendDirectInviteEmail = async (email, name, details) => {
   }
 }
 
+/**
+ * Sends the final agreement PDF to all participants.
+ * @param {string[]|string} toList - One or more recipient email addresses.
+ * @param {Buffer} pdfBuffer - The PDF file contents.
+ * @param {string} [filename]
+ */
+export const sendAgreementEmail = async (toList, pdfBuffer, filename = 'agreement.pdf') => {
+  if (!process.env.RESEND_API_KEY) {
+    console.error('RESEND_API_KEY is not set. Skipping email send.')
+    return
+  }
+  if (!resend) {
+    console.error('Resend client not initialized. Skipping email send.')
+    return
+  }
+  try {
+    await resend.emails.send({
+      from: 'agreement@disagreement.ai',
+      to: toList,
+      subject: 'Your final agreement from Disagreement.AI',
+      text: 'Attached is the finalized agreement PDF for your records.',
+      attachments: [
+        { filename, content: pdfBuffer }
+      ],
+    })
+    console.log('Agreement email sent to:', Array.isArray(toList) ? toList.join(', ') : toList)
+  } catch (error) {
+    console.error('Error sending agreement email:', error)
+  }
+}
+
+/**
+ * Notify the creator that a user requested to join via public link.
+ * @param {string} toCreator
+ * @param {string} requestorName
+ * @param {string} disagreementTitle
+ */
+export const sendApprovalRequestEmail = async (toCreator, requestorName, disagreementTitle) => {
+  if (!process.env.RESEND_API_KEY) {
+    console.error('RESEND_API_KEY is not set. Skipping email send.')
+    return
+  }
+  if (!resend) {
+    console.error('Resend client not initialized. Skipping email send.')
+    return
+  }
+  try {
+    await resend.emails.send({
+      from: 'notifications@disagreement.ai',
+      to: toCreator,
+      subject: `${requestorName || 'Someone'} requested to join "${disagreementTitle || 'your disagreement'}"`,
+      text: `${requestorName || 'Someone'} has requested to join "${disagreementTitle || 'your disagreement'}". Visit your dashboard to approve or deny the request: https://disagreement.ai/dashboard`,
+    })
+    console.log('Approval request email sent to creator:', toCreator)
+  } catch (error) {
+    console.error('Error sending approval request email:', error)
+  }
+}
+
+/**
+ * Notify a requester that their approval has been granted.
+ * @param {string} toRequestor
+ * @param {string} disagreementTitle
+ */
+export const sendApprovalConfirmationEmail = async (toRequestor, disagreementTitle) => {
+  if (!process.env.RESEND_API_KEY) {
+    console.error('RESEND_API_KEY is not set. Skipping email send.')
+    return
+  }
+  if (!resend) {
+    console.error('Resend client not initialized. Skipping email send.')
+    return
+  }
+  try {
+    await resend.emails.send({
+      from: 'notifications@disagreement.ai',
+      to: toRequestor,
+      subject: `You have been approved to join "${disagreementTitle || 'a disagreement'}"`,
+      text: `Your request to join "${disagreementTitle || 'a disagreement'}" has been approved. Click here to open the chat: https://disagreement.ai/dashboard`,
+    })
+    console.log('Approval confirmation email sent to requestor:', toRequestor)
+  } catch (error) {
+    console.error('Error sending approval confirmation email:', error)
+  }
+}
+
 export default {
   sendContactFormEmail,
   sendWelcomeEmail,
   sendDirectInviteEmail,
+  sendAgreementEmail,
+  sendApprovalRequestEmail,
+  sendApprovalConfirmationEmail,
 }

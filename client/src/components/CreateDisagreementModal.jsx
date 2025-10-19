@@ -148,7 +148,6 @@ function CreateDisagreementModal({ isOpen, onClose, onCreate }) {
                 id="disagreement-title"
                 type="text"
                 placeholder="Title this disagreement"
-                maxLength="40"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 required

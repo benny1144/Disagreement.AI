@@ -29,6 +29,7 @@ interface Disagreement {
   messages: Message[]
   publicInviteToken?: { token?: string; enabled?: boolean }
   participants?: Participant[]
+  archivedAt?: string | Date | null
 }
 
 export default function ChatPage(): JSX.Element {
@@ -40,6 +41,8 @@ export default function ChatPage(): JSX.Element {
   const [isInviteModalOpen, setInviteModalOpen] = useState(false)
   const [isManagerModalOpen, setManagerModalOpen] = useState(false)
   const [showUpload, setShowUpload] = useState(false)
+  const [finalizing, setFinalizing] = useState(false)
+  const [downloading, setDownloading] = useState(false)
   const uploadRef = useRef(null)
   const [showParticipants, setShowParticipants] = useState(false)
   const participantsRef = useRef(null)
@@ -136,6 +139,45 @@ export default function ChatPage(): JSX.Element {
     setNewMessage('')
   }
 
+  const finalizeCase = async () => {
+    if (!id || !token) return
+    setFinalizing(true)
+    try {
+      await axios.post(`${API_URL}/disagreements/${id}/finalize`, {}, { headers: { Authorization: `Bearer ${token}` } })
+      setDisagreement((prev) => ({ ...prev, archivedAt: new Date().toISOString() }))
+    } catch (e: any) {
+      const msg = e?.response?.data?.message || e?.message || 'Failed to finalize agreement.'
+      alert(msg)
+    } finally {
+      setFinalizing(false)
+    }
+  }
+
+  const handleDownloadAgreement = async () => {
+    if (!id || !token) return
+    setDownloading(true)
+    try {
+      const res = await axios.get(`${API_URL}/disagreements/${id}/agreement`, {
+        responseType: 'blob',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const blob = new Blob([res.data], { type: 'application/pdf' })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `agreement-${(disagreement as any)?.caseId || id}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (e: any) {
+      const msg = e?.response?.data?.message || e?.message || 'Failed to download agreement.'
+      alert(msg)
+    } finally {
+      setDownloading(false)
+    }
+  }
+
   // Determine if current user is the creator (assume first participant is the creator for now)
   const participantsList = Array.isArray((disagreement as any)?.participants) ? (disagreement as any).participants : []
   const creatorUserId = participantsList.length > 0 ? (participantsList[0]?.user?._id || participantsList[0]?.user) : null
@@ -213,6 +255,14 @@ export default function ChatPage(): JSX.Element {
                       )}
                     </div>
                   </div>
+                    {(disagreement as any)?.archivedAt && (
+                      <div className="mt-2">
+                        <button onClick={handleDownloadAgreement} disabled={downloading} className={`inline-flex items-center rounded-md font-semibold shadow-sm px-4 py-2 text-sm ${downloading ? 'bg-emerald-300 text-white cursor-not-allowed' : 'bg-emerald-600 text-white hover:bg-emerald-500'}`}>
+                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 mr-2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                          {downloading ? 'Preparing…' : 'Download Agreement'}
+                        </button>
+                      </div>
+                    )}
                 </div>
                 {isCreator && (
                   <div className="flex items-center gap-2">
@@ -229,6 +279,14 @@ export default function ChatPage(): JSX.Element {
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 mr-2"><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><circle cx="3" cy="6" r="1"/><circle cx="3" cy="12" r="1"/><circle cx="3" cy="18" r="1"/></svg>
                       Manage
+                    </button>
+                    <button
+                      onClick={finalizeCase}
+                      disabled={finalizing || Boolean((disagreement as any)?.archivedAt)}
+                      className={`inline-flex items-center rounded-md font-semibold shadow-sm px-4 py-2 text-lg ${finalizing || (disagreement as any)?.archivedAt ? 'bg-emerald-300 text-white cursor-not-allowed' : 'bg-emerald-600 text-white hover:bg-emerald-500'}`}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 mr-2"><polyline points="20 6 9 17 4 12"/></svg>
+                      {finalizing ? 'Finalizing…' : ((disagreement as any)?.archivedAt ? 'Finalized' : 'Finalize')}
                     </button>
                   </div>
                 )}

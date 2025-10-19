@@ -5,7 +5,8 @@ import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import emailService from '../services/emailService.js';
 import { postOnboardingMessage } from '../services/aiService.js';
-const { sendDirectInviteEmail } = emailService;
+import { generateAgreementPDF } from '../services/pdfService.js';
+const { sendDirectInviteEmail, sendApprovalRequestEmail, sendApprovalConfirmationEmail, sendAgreementEmail } = emailService;
 
 // Helper: check if user is listed as a participant (any status)
 const isUserAnyParticipant = (disagreement, userId) => {
@@ -184,6 +185,19 @@ const acceptInvite = asyncHandler(async (req, res) => {
 
     if (pendingApproval) {
         console.log('[acceptInvite] Pending approval path returning 202');
+        // Notify the creator via email
+        try {
+            const creator = await User.findById(disagreement.creator).select('email name')
+            if (creator?.email) {
+                await sendApprovalRequestEmail(
+                    creator.email,
+                    userToJoin?.name || userToJoin?.email || 'A user',
+                    disagreement.title
+                )
+            }
+        } catch (e) {
+            console.error('[acceptInvite] Failed to send approval request email:', e?.message || e)
+        }
         return res.status(202).json({ code: 'PENDING_APPROVAL', message: 'Your request to join is pending creator approval.', disagreementId: disagreement._id });
     }
 
@@ -391,6 +405,16 @@ const approveInvitation = asyncHandler(async (req, res) => {
         .populate('pendingInvitations', 'name email')
         .populate('messages.sender', 'name');
 
+    // Notify the approved user via email
+    try {
+        const approvedUser = await User.findById(userId).select('email')
+        if (approvedUser?.email) {
+            await sendApprovalConfirmationEmail(approvedUser.email, updated?.title)
+        }
+    } catch (e) {
+        console.error('[approveInvitation] Failed to send approval confirmation email:', e?.message || e)
+    }
+
     // Trigger AI onboarding if we now have at least two active participants and it's not sent yet
     try {
         const activeCount = Array.isArray(updated?.participants)
@@ -447,6 +471,82 @@ const denyInvitation = asyncHandler(async (req, res) => {
     res.status(200).json(updated);
 });
 
+// @desc    Finalize a disagreement: archive, generate PDF, email participants
+// @route   POST /api/disagreements/:id/finalize
+// @access  Private (creator only)
+const finalizeAgreement = asyncHandler(async (req, res) => {
+    const { id } = req.params
+    const disagreement = await Disagreement.findById(id).populate('participants.user', 'email name')
+    if (!disagreement) {
+        res.status(404)
+        throw new Error('Disagreement not found')
+    }
+    if (!disagreement.creator.equals(req.user.id)) {
+        res.status(401)
+        throw new Error('Only the creator can finalize this disagreement')
+    }
+
+    const finalText = (req.body?.finalText || '').toString().trim() || disagreement.resolution || `Final agreement for "${disagreement.title}".`
+    disagreement.resolution = finalText
+    disagreement.archivedAt = new Date()
+    await disagreement.save()
+
+    let pdfBuffer
+    try {
+        pdfBuffer = await generateAgreementPDF(disagreement, finalText)
+    } catch (e) {
+        console.error('[finalizeAgreement] PDF generation failed:', e?.message || e)
+        res.status(500)
+        throw new Error('Failed to generate agreement PDF')
+    }
+
+    try {
+        const toList = (Array.isArray(disagreement.participants) ? disagreement.participants : [])
+            .map(p => p?.user?.email)
+            .filter(Boolean)
+        if (toList.length) {
+            await sendAgreementEmail(toList, pdfBuffer, `agreement-${disagreement.caseId || disagreement._id}.pdf`)
+        }
+    } catch (e) {
+        console.error('[finalizeAgreement] Failed to send agreement email:', e?.message || e)
+        // continue; email failure shouldn’t block archiving
+    }
+
+    return res.status(200).json({ message: 'Agreement finalized', archivedAt: disagreement.archivedAt })
+})
+
+// @desc    Download finalized agreement PDF
+// @route   GET /api/disagreements/:id/agreement
+// @access  Private (participants only)
+const downloadAgreement = asyncHandler(async (req, res) => {
+    const { id } = req.params
+    const disagreement = await Disagreement.findById(id)
+    if (!disagreement) {
+        res.status(404)
+        throw new Error('Disagreement not found')
+    }
+    // auth: participant only
+    if (!isUserAnyParticipant(disagreement, req.user.id)) {
+        res.status(401)
+        throw new Error('Not Authorized')
+    }
+
+    const finalText = disagreement.resolution || `Agreement for "${disagreement.title}" is not available.`
+    let pdfBuffer
+    try {
+        pdfBuffer = await generateAgreementPDF(disagreement, finalText)
+    } catch (e) {
+        console.error('[downloadAgreement] PDF generation failed:', e?.message || e)
+        res.status(500)
+        throw new Error('Failed to generate agreement PDF')
+    }
+
+    const filename = `agreement-${disagreement.caseId || disagreement._id}.pdf`
+    res.setHeader('Content-Type', 'application/pdf')
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
+    return res.status(200).end(pdfBuffer)
+})
+
 export {
     getDisagreements,
     createDisagreement,
@@ -457,6 +557,8 @@ export {
     manageParticipant,
     approveInvitation,
     denyInvitation,
+    finalizeAgreement,
+    downloadAgreement,
     // Keep existing functions, but ensure they are exported if still used.
     // updateDisagreement, deleteDisagreement, processDisagreement
 };

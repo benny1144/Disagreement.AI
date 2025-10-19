@@ -4,11 +4,13 @@ import axios from 'axios'
 import { useAuth } from '@/contexts/AuthContext'
 import CreateDisagreementModal from '../components/CreateDisagreementModal'
 import InviteUserModal from '../components/InviteUserModal'
+import InvitationManager from '../components/InvitationManager'
 
 // Derive API base from environment; fallback to same-origin relative /api
 const envApi = typeof import.meta !== 'undefined' ? import.meta.env?.VITE_API_URL : undefined
 const API_BASE = envApi && String(envApi).trim() !== '' ? String(envApi).replace(/\/$/, '') : ''
 const API_URL = API_BASE ? `${API_BASE}/api` : '/api'
+const DASH_VIMEO_ID = (typeof import.meta !== 'undefined' ? (import.meta as any).env?.VITE_DASH_VIMEO_ID : undefined) || 'YOUR_VIMEO_VIDEO_ID'
 
 interface Disagreement {
   _id: string
@@ -23,6 +25,8 @@ export default function DashboardPage(): JSX.Element {
   const [isModalOpen, setModalOpen] = useState(false)
   const [isInviteModalOpen, setInviteModalOpen] = useState(false)
   const [inviteTarget, setInviteTarget] = useState<{ id: string; token: string } | null>(null)
+  const [isManagerOpen, setManagerOpen] = useState(false)
+  const [managerDisagreement, setManagerDisagreement] = useState<any>(null)
 
   const onOpen = () => setModalOpen(true)
   const onClose = () => setModalOpen(false)
@@ -73,6 +77,26 @@ export default function DashboardPage(): JSX.Element {
   const closeInvite = () => {
     setInviteModalOpen(false)
     setInviteTarget(null)
+  }
+
+  const openManagerFor = async (d: any) => {
+    try {
+      const id = (d && (d as any)._id) || ''
+      if (!id || !token) return
+      const res = await axios.get(`${API_URL}/disagreements/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      setManagerDisagreement(res.data)
+      setManagerOpen(true)
+    } catch (e: any) {
+      const msg = e?.response?.data?.message || e?.message || 'Failed to load disagreement.'
+      alert(msg)
+    }
+  }
+
+  const closeManager = () => {
+    setManagerOpen(false)
+    setManagerDisagreement(null)
   }
 
   return (
@@ -152,6 +176,13 @@ export default function DashboardPage(): JSX.Element {
                             >
                               Invite
                             </button>
+                            <button
+                              type="button"
+                              onClick={() => openManagerFor(d)}
+                              className="inline-flex items-center rounded-md bg-slate-500 text-white font-semibold shadow-sm hover:bg-slate-400 px-3 py-1.5 text-sm md:text-base"
+                            >
+                              Manage
+                            </button>
                           </div>
                         </div>
                       </li>
@@ -185,6 +216,19 @@ export default function DashboardPage(): JSX.Element {
               </div>
             </div>
 
+            {/* Quick Start Guide (Bento 1x1) */}
+            <div className="lg:col-span-1 lg:row-span-1 bg-white rounded-2xl shadow p-6">
+              <h3 className="text-xl font-bold text-slate-800 mb-2">Quick Start Guide</h3>
+              <div className="aspect-video w-full rounded-lg overflow-hidden">
+                <iframe
+                  src={`https://player.vimeo.com/video/${DASH_VIMEO_ID}?muted=1&autoplay=0&loop=0&title=0&byline=0`}
+                  allow="autoplay; fullscreen; picture-in-picture"
+                  className="w-full h-full"
+                  title="Quick Start Guide"
+                ></iframe>
+              </div>
+            </div>
+
             {/* Recent Activity (Bento 2x1) */}
             <div className="lg:col-span-2 lg:row-span-1 bg-white rounded-2xl shadow p-6">
               <h3 className="text-xl font-bold text-slate-800 mb-2">Recent Activity</h3>
@@ -206,6 +250,16 @@ export default function DashboardPage(): JSX.Element {
           onClose={closeInvite}
           disagreementId={inviteTarget?.id}
           publicInviteToken={inviteTarget?.token || ''}
+        />
+        <InvitationManager
+          isOpen={isManagerOpen}
+          onClose={closeManager}
+          disagreement={managerDisagreement as any}
+          onInviteNew={() => managerDisagreement && openInviteFor(managerDisagreement)}
+          onUpdated={(updated: any) => {
+            setManagerDisagreement(updated)
+            setDisagreements((prev) => prev.map((d) => (d._id === updated?._id ? { ...d, title: updated?.title || d.title } : d)))
+          }}
         />
       </div>
     </div>

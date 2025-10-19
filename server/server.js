@@ -6,6 +6,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import connectDB from './config/db.js';
 import Disagreement from './models/disagreementModel.js';
+import mongoose from 'mongoose';
 
 // Import route files
 import userRoutes from './routes/userRoutes.js';
@@ -27,6 +28,35 @@ dotenv.config({ path: path.resolve(__dirname, '../services/.env') });
 
 // Connect to database
 void connectDB();
+
+// Hotfix v1.3: Ensure sparse unique index on directInvites.token
+// Runs once after a successful MongoDB connection.
+mongoose.connection.once('open', async () => {
+    try {
+        const coll = Disagreement.collection;
+        // Drop existing faulty index if present
+        try {
+            await coll.dropIndex('directInvites.token_1');
+            console.log('[Hotfix v1.3] Dropped index directInvites.token_1');
+        } catch (e) {
+            const msg = e?.message || String(e);
+            if (e?.codeName === 'IndexNotFound' || /index not found|ns not found|name not found/i.test(msg)) {
+                console.log('[Hotfix v1.3] Index directInvites.token_1 not found; skipping drop');
+            } else {
+                console.warn('[Hotfix v1.3] Drop index warning:', msg);
+            }
+        }
+        // Create the correct sparse unique index
+        try {
+            await coll.createIndex({ 'directInvites.token': 1 }, { name: 'directInvites.token_1', unique: true, sparse: true });
+            console.log('[Hotfix v1.3] Ensured sparse unique index on directInvites.token');
+        } catch (e) {
+            console.error('[Hotfix v1.3] Failed to create sparse unique index on directInvites.token:', e?.message || e);
+        }
+    } catch (err) {
+        console.error('[Hotfix v1.3] Index migration error:', err?.message || err);
+    }
+});
 
 const app = express();
 const httpServer = createServer(app);

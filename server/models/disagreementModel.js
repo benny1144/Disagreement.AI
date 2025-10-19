@@ -22,7 +22,7 @@ const participantSchema = mongoose.Schema({
 // A sub-document for direct, trusted email invitations
 const directInviteSchema = mongoose.Schema({
     email: { type: String, required: true, lowercase: true, trim: true },
-    token: { type: String, required: true, unique: true },
+    token: { type: String, required: true },
     status: {
         type: String,
         required: true,
@@ -109,6 +109,10 @@ disagreementSchema.pre('save', function(next) {
     }
     next();
 });
+
+// Ensure sparse unique index on directInvites.token to avoid null collisions
+// NOTE: We rely on a startup migration to drop any existing non-sparse index.
+disagreementSchema.index({ 'directInvites.token': 1 }, { unique: true, sparse: true });
 
 const Disagreement = mongoose.model('Disagreement', disagreementSchema);
 

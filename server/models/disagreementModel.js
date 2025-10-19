@@ -60,7 +60,8 @@ const disagreementSchema = mongoose.Schema({
     // Users who joined via public link and await creator approval
     pendingInvitations: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     // Direct email invites (token-based)
-    directInvites: [directInviteSchema],
+    // Direct email invites (token-based). Default undefined to avoid creating empty arrays which can trigger unique index nulls
+    directInvites: { type: [directInviteSchema], default: undefined },
     publicInviteToken: { // The single, shareable link token
         token: { type: String, unique: true, sparse: true },
         enabled: { type: Boolean, default: true }
@@ -80,6 +81,18 @@ const disagreementSchema = mongoose.Schema({
 }, {
     timestamps: true,
 });
+
+// Sanitize directInvites before validation to avoid null tokens and empty arrays
+
+disagreementSchema.pre('validate', function(next) {
+    if (Array.isArray(this.directInvites)) {
+        this.directInvites = this.directInvites.filter(inv => inv && typeof inv.token === 'string' && inv.token.trim() && inv.email)
+        if (this.directInvites.length === 0) {
+            this.directInvites = undefined
+        }
+    }
+    next()
+})
 
 // Before saving a new disagreement, add the creator as the first active participant
 // and generate the initial public invite token.

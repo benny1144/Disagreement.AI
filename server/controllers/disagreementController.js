@@ -36,7 +36,7 @@ const getDisagreements = asyncHandler(async (req, res) => {
 // @route   POST /api/disagreements
 // @access  Private
 const createDisagreement = asyncHandler(async (req, res) => {
-    const { title, description } = req.body;
+    const { title, description, invites } = req.body;
     if (!title || !description) {
         res.status(400);
         throw new Error('Please provide both a title and a description');
@@ -54,12 +54,33 @@ const createDisagreement = asyncHandler(async (req, res) => {
     const seq = String(countForMonth + 1).padStart(3, '0');
     const caseId = `${prefix}${seq}`;
 
-    const disagreement = await Disagreement.create({
+    // ONLY process direct invites if provided and non-empty
+    let directInvites = [];
+    if (invites && Array.isArray(invites) && invites.length > 0) {
+        directInvites = invites
+            .map((invite) => {
+                const email = String(invite?.email || '').trim().toLowerCase();
+                if (!email) return null;
+                return {
+                    email,
+                    token: crypto.randomBytes(20).toString('hex'),
+                    // customMessage: invite?.customMessage, // optional
+                };
+            })
+            .filter(Boolean);
+    }
+
+    const payload = {
         caseId,
         title,
         description,
         creator: req.user.id,
-    });
+    };
+    if (directInvites.length > 0) {
+        payload.directInvites = directInvites;
+    }
+
+    const disagreement = await Disagreement.create(payload);
     res.status(201).json(disagreement);
 });
 

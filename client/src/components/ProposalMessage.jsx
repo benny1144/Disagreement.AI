@@ -8,7 +8,7 @@ import axios from 'axios'
  * - message: { _id?: string, text: string, sender?: { name?: string }, isProposal?: boolean, agreements?: Array<{ user: any, agreedAt?: string }> }
  * - disagreementId: string
  */
-export default function ProposalMessage({ message, disagreementId, participantCount = 0, isCreator = false }) {
+export default function ProposalMessage({ message, disagreementId, participantCount = 0 }) {
   const text = (message?.text || '').toString()
   const senderName = (message?.sender && message.sender.name) ? message.sender.name : 'DAI'
 
@@ -75,8 +75,20 @@ export default function ProposalMessage({ message, disagreementId, participantCo
     let token
     try { token = JSON.parse(localStorage.getItem('user'))?.token } catch { token = undefined }
     try {
-      await axios.post(`${API_URL}/disagreements/${disagreementId}/finalize`, {}, token ? { headers: { Authorization: `Bearer ${token}` } } : undefined)
-      // No local state change here; page header and Download button rely on ChatPage state.
+      const res = await axios.post(`${API_URL}/disagreements/${disagreementId}/finalize`, {}, {
+        responseType: 'blob',
+        ...(token ? { headers: { Authorization: `Bearer ${token}` } } : {}),
+      })
+      // Download the returned PDF
+      const blob = new Blob([res.data], { type: 'application/pdf' })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `disagreement-${disagreementId}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      window.URL.revokeObjectURL(url)
     } catch (err) {
       setFinalizeError(err?.response?.data?.message || err?.message || 'Failed to finalize agreement.')
       setFinalizeDisabled(false)
@@ -117,12 +129,12 @@ export default function ProposalMessage({ message, disagreementId, participantCo
                 <button
                   type="button"
                   className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-semibold shadow-sm ${finalizeDisabled ? 'bg-emerald-300 text-white cursor-not-allowed' : 'bg-emerald-600 text-white hover:bg-emerald-500'}`}
-                  aria-label="Finalize Agreement"
+                  aria-label="Finalize Agreement & Download Report"
                   onClick={handleFinalize}
-                  disabled={finalizeDisabled || !isCreator}
-                  title={!isCreator ? 'Only the creator can finalize the agreement.' : ''}
+                  disabled={finalizeDisabled}
+                  title="Finalize Agreement & Download Report"
                 >
-                  {finalizeDisabled ? 'Finalizing…' : 'Finalize Agreement'}
+                  {finalizeDisabled ? 'Finalizing…' : 'Finalize Agreement & Download Report'}
                 </button>
               ) : (
                 <>

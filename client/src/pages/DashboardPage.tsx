@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import CreateDisagreementModal from '../components/CreateDisagreementModal'
 import InviteUserModal from '../components/InviteUserModal'
 import InvitationManager from '../components/InvitationManager'
+import { useChat } from '@/state/ChatContext'
 
 // Derive API base from environment; fallback to same-origin relative /api
 const envApi = typeof import.meta !== 'undefined' ? import.meta.env?.VITE_API_URL : undefined
@@ -18,6 +19,7 @@ interface Disagreement {
 }
 
 export default function DashboardPage(): JSX.Element {
+  const { openChat } = useChat()
   const navigate = useNavigate()
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
@@ -99,6 +101,44 @@ export default function DashboardPage(): JSX.Element {
     setManagerDisagreement(null)
   }
 
+  const openDisagreement = (d: any, opts: any = {}) => {
+    const id = (d && (d as any)._id) || ''
+    if (!id) return
+    openChat(id, { readOnly: Boolean(opts.readOnly) })
+  }
+
+  const downloadReport = async (id: string) => {
+    if (!id) return
+    try {
+      // Try a dedicated report endpoint first
+      let res
+      try {
+        res = await axios.get(`${API_URL}/disagreements/${id}/report`, {
+          responseType: 'blob',
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        })
+      } catch {
+        // Fallback: finalize (server should return existing PDF if already resolved)
+        res = await axios.post(`${API_URL}/disagreements/${id}/finalize`, {}, {
+          responseType: 'blob',
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        })
+      }
+      const blob = new Blob([res.data], { type: 'application/pdf' })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `disagreement-${id}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (e: any) {
+      const msg = e?.response?.data?.message || e?.message || 'Failed to download report.'
+      alert(msg)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-white px-4 md:px-8 py-6 md:py-10 font-sans">
       <div className="max-w-6xl mx-auto space-y-8">
@@ -150,9 +190,9 @@ export default function DashboardPage(): JSX.Element {
                       <li key={d._id} className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-all">
                         <div className="min-w-0">
                           <p className="text-sm font-semibold text-slate-500">{(d as any)?.caseId || `ID: ${(d as any)?._id}`}</p>
-                          <RouterLink to={`/disagreement/${d._id}`} className="block">
+                          <div className="block cursor-pointer" onClick={() => openDisagreement(d)} title="Open chat">
                             <div className="text-base md:text-lg font-bold text-slate-800 truncate">{d.title || 'Untitled Disagreement'}</div>
-                          </RouterLink>
+                          </div>
                           <div className="text-slate-600 mt-1 text-sm md:text-base">
                             {(() => {
                               const parts = (d as any)?.participants
@@ -164,25 +204,48 @@ export default function DashboardPage(): JSX.Element {
                             })()}
                           </div>
                           <div className="flex items-center gap-2 mt-3">
-                            <RouterLink to={`/disagreement/${d._id}`} className="inline-block">
-                              <button className="inline-flex items-center rounded-md bg-blue-600 text-white font-semibold shadow-sm hover:bg-blue-500 px-3 py-1.5 text-sm md:text-base">
-                                Open Chat
-                              </button>
-                            </RouterLink>
-                            <button
-                              type="button"
-                              onClick={() => openInviteFor(d)}
-                              className="inline-flex items-center rounded-md bg-slate-700 text-white font-semibold shadow-sm hover:bg-slate-600 px-3 py-1.5 text-sm md:text-base"
-                            >
-                              Invite
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => openManagerFor(d)}
-                              className="inline-flex items-center rounded-md bg-slate-500 text-white font-semibold shadow-sm hover:bg-slate-400 px-3 py-1.5 text-sm md:text-base"
-                            >
-                              Manage
-                            </button>
+                            {((d as any)?.status === 'resolved') ? (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => downloadReport((d as any)._id)}
+                                  className="inline-flex items-center rounded-md bg-blue-600 text-white font-semibold shadow-sm hover:bg-blue-500 px-3 py-1.5 text-sm md:text-base"
+                                >
+                                  Download Report
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => openDisagreement(d, { readOnly: true })}
+                                  className="inline-flex items-center rounded-md border border-slate-300 text-slate-700 bg-white font-semibold shadow-sm hover:bg-slate-50 px-3 py-1.5 text-sm md:text-base"
+                                >
+                                  View Chat Archive
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => openDisagreement(d)}
+                                  className="inline-flex items-center rounded-md bg-blue-600 text-white font-semibold shadow-sm hover:bg-blue-500 px-3 py-1.5 text-sm md:text-base"
+                                >
+                                  Open
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => openInviteFor(d)}
+                                  className="inline-flex items-center rounded-md bg-slate-700 text-white font-semibold shadow-sm hover:bg-slate-600 px-3 py-1.5 text-sm md:text-base"
+                                >
+                                  Invite
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => openManagerFor(d)}
+                                  className="inline-flex items-center rounded-md bg-slate-500 text-white font-semibold shadow-sm hover:bg-slate-400 px-3 py-1.5 text-sm md:text-base"
+                                >
+                                  Manage
+                                </button>
+                              </>
+                            )}
                           </div>
                         </div>
                       </li>

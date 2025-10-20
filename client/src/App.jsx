@@ -3,6 +3,8 @@ import { Component, lazy, Suspense } from 'react';
 import Layout from './components/Layout';
 import PublicLayout from '@/components/layout/PublicLayout';
 import { AuthProvider } from './contexts/AuthContext';
+import ChatWidget from './components/ChatWidget.jsx';
+import { ChatProvider } from './state/ChatContext.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import CookieConsentBanner from './components/CookieConsentBanner.jsx';
 
@@ -57,6 +59,7 @@ function App() {
     return (
         <ErrorBoundary>
             <AuthProvider>
+                <ChatProvider>
                 <Router>
                         {/* --- (Step 2: Replace Chakra spinner with a simple div for the loading fallback) --- */}
                         <Suspense fallback={
@@ -85,8 +88,10 @@ function App() {
                               </Route>
                             </Routes>
                         </Suspense>
-                <CookieConsentBanner />
-                </Router>
+                        <ChatWidget />
+                        <CookieConsentBanner />
+                    </Router>
+                </ChatProvider>
             </AuthProvider>
         </ErrorBoundary>
     );

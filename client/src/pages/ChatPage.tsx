@@ -4,6 +4,7 @@ import axios from 'axios'
 import { io, Socket } from 'socket.io-client'
 import InviteUserModal from '../components/InviteUserModal'
 import InvitationManager from '../components/InvitationManager'
+import ProposalMessage from '../components/ProposalMessage'
 import { useAuth } from '@/contexts/AuthContext'
 
 // Derive API base from environment; fallback to same-origin relative /api
@@ -18,6 +19,7 @@ interface Message {
   sender?: any
   text: string
   isAIMessage?: boolean
+  isProposal?: boolean
 }
 
 interface Participant {
@@ -315,6 +317,9 @@ export default function ChatPage(): JSX.Element {
                   <p className="text-slate-500">No messages yet.</p>
                 ) : (
                   disagreement.messages.map((msg, idx) => {
+                    if ((msg as any)?.isProposal) {
+                      return (<ProposalMessage key={msg._id || idx} message={msg as any} />)
+                    }
                     const senderId = typeof msg.sender === 'object' ? (msg.sender?._id || (msg as any).sender?.id) : (msg as any).sender
                     const isMine = currentUserId && senderId && String(senderId) === String(currentUserId)
                     const isAI = Boolean((msg as any)?.isAIMessage) || (typeof msg.sender === 'object' && typeof (msg as any)?.sender?.name === 'string' && ((msg as any).sender.name as string).toLowerCase() === 'ai mediator')

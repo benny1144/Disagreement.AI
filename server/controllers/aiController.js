@@ -483,3 +483,64 @@ export async function getAISummary(messageHistory) {
     return 'My understanding is that each of you has outlined different concerns. Is this summary accurate?';
   }
 }
+
+// --- Resolution Proposal (v3.0) ---
+export async function getAIResolutionProposal(messageHistory) {
+  try {
+    const history = Array.isArray(messageHistory) ? messageHistory : [];
+    const MAX = Number(process.env.AI_PROPOSAL_HISTORY_LIMIT || 60);
+    const sanitize = (v) => (v == null ? '' : String(v)).replace(/\s+/g, ' ').trim();
+    const formatted = history
+      .slice(Math.max(0, history.length - MAX))
+      .map((m) => {
+        const name = sanitize(m?.sender?.name || 'Participant');
+        const txt = sanitize(m?.text || '');
+        return `${name}: ${txt}`;
+      })
+      .filter(Boolean)
+      .join('\n');
+
+    const systemPrompt = `You are an expert AI Mediator. Your task is to read an entire conversation transcript and generate a concise, neutral, and actionable resolution plan.
+
+- Analyze all facts, evidence, and perspectives presented.
+- Your proposal must be a clear, step-by-step plan that addresses the core of the disagreement.
+- Do not assign blame. Focus only on the solution.
+- The proposal should be written in a way that is fair to both parties.
+- Keep the entire proposal under 100 words.`;
+
+    const userContent = formatted
+      ? `CONVERSATION TRANSCRIPT (newest last):\n${formatted}\n\nWrite a concise resolution proposal as specified.`
+      : 'Write a concise resolution proposal as specified for a minimal conversation.';
+
+    let content = '';
+    try {
+      const completion = await openai.chat.completions.create({
+        model: process.env.OPENAI_PROPOSAL_MODEL || process.env.OPENAI_SUMMARY_MODEL || 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userContent },
+        ],
+        temperature: 0.3,
+        max_tokens: 220,
+      });
+      content = (completion?.choices?.[0]?.message?.content || '').trim();
+    } catch (e) {
+      console.error('[AI] getAIResolutionProposal error:', e?.message || e);
+    }
+
+    if (!content) {
+      // Conservative fallback: neutral 2-step plan under ~100 words
+      content = 'Proposed path forward: 1) Each party lists their top two desired outcomes and any constraints in writing within 24 hours. 2) Identify the overlap and agree on one next concrete step with a clear owner and date. Does this seem fair to both of you?';
+    }
+
+    // Enforce ~100-word limit as a safety check
+    const words = content.split(/\s+/).filter(Boolean);
+    if (words.length > 100) {
+      content = words.slice(0, 100).join(' ');
+    }
+    return content.replace(/\s+/g, ' ').trim();
+  } catch (err) {
+    console.error('getAIResolutionProposal internal error:', err);
+    return 'Proposed path forward: 1) Share your top outcomes and constraints. 2) Agree on one concrete next step with an owner and date. Does this seem fair to both of you?';
+  }
+}

@@ -1,6 +1,6 @@
 import Disagreement from '../models/disagreementModel.js';
 import User from '../models/userModel.js';
-import { getAIResponseToSummon, classifyMessageToxicity, getAIReEngagementMessage, getAISummary } from '../controllers/aiController.js';
+import { getAIResponseToSummon, classifyMessageToxicity, getAIReEngagementMessage, getAISummary, getAIResolutionProposal } from '../controllers/aiController.js';
 
 // Inactivity timer cache per room (AI Re-engagement v2.3)
 const roomTimers = {};
@@ -80,6 +80,53 @@ async function analyzeMessage(message, roomId, io) {
     const text = (message?.text || '').toString();
     const messageText = text.toLowerCase();
     const summonKeywords = ['@mediator', 'ai mediator', 'mediator,', 'ask the ai'];
+
+    // 0) Resolution Proposal (highest priority)
+    const proposalTrigger = '@mediator propose a resolution';
+    if (messageText.includes(proposalTrigger)) {
+      console.log(`[AI Analysis] Resolution Proposal triggered for room ${roomId}.`);
+      const aiSenderId = process.env.AI_MEDIATOR_USER_ID;
+      if (!aiSenderId) {
+        console.warn('[AI Analysis] AI_MEDIATOR_USER_ID not set; cannot emit resolution proposal.');
+        return;
+      }
+
+      // Fetch full conversation history with populated sender names
+      const disagreement = await Disagreement.findById(roomId).populate({
+        path: 'messages.sender',
+        select: 'name'
+      });
+      if (!disagreement) return;
+      const messageHistory = Array.isArray(disagreement.messages) ? disagreement.messages : [];
+
+      // Call AI service for resolution proposal
+      let proposalText = '';
+      try {
+        proposalText = await getAIResolutionProposal(messageHistory);
+      } catch (e) {
+        console.error('[AI Analysis] getAIResolutionProposal error:', e?.message || e);
+      }
+      if (!proposalText) return;
+
+      // Save + emit AI proposal (mark as proposal)
+      disagreement.messages.push({ sender: aiSenderId, text: proposalText, isAIMessage: true, isProposal: true });
+      await disagreement.save();
+
+      const saved = disagreement.messages[disagreement.messages.length - 1];
+      let aiUserDoc = null;
+      try {
+        aiUserDoc = await User.findById(aiSenderId).select('name');
+      } catch (_) {}
+      const populatedAiMessage = {
+        _id: saved?._id,
+        sender: aiUserDoc ? { _id: aiUserDoc._id, name: aiUserDoc.name } : { _id: aiSenderId, name: 'AI Mediator' },
+        text: proposalText,
+        isAIMessage: true,
+        isProposal: true
+      };
+      io.to(roomId).emit('receive_message', populatedAiMessage);
+      return;
+    }
 
     // 1) Summon Rule
     const isSummoned = summonKeywords.some(keyword => messageText.includes(keyword));

@@ -5,6 +5,7 @@ const messageSchema = mongoose.Schema({
     sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     text: { type: String, required: true },
     isAIMessage: { type: Boolean, default: false },
+    isProposal: { type: Boolean, default: false },
     timestamp: { type: Date, default: Date.now }
 });
 

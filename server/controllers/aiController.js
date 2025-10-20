@@ -227,57 +227,9 @@ Do not be overly sensitive. The goal is to prevent abuse, not to police tone. On
 }
 
 // New AI service: Clarifying Introduction for AI Mediator
-export async function getAIClarifyingIntroduction(description) {
-  console.log('[DIAGNOSTIC] getAIClarifyingIntroduction has been called.');
-  const desc = (description || '').toString().trim();
-  if (String(process.env.DAI_INTRO_DIAGNOSTIC || '').toLowerCase() === 'true') {
-    console.log('[DIAGNOSTIC] Bypassing OpenAI and returning hardcoded test intro.');
-    return "TEST: The correct getAIClarifyingIntroduction function was called successfully.";
-  }
-  const systemPrompt = `Hello, I am DAI. I am here to help you find a clear, mutual agreement.
-
-My understanding is the core issue is: **[DAI summary will be inserted here]**.
-
-To make this process fair and productive, please follow these three principles:
-
-1. 💯 Respect Each Other.
-Focus on the facts of the issue, not the person. Personal attacks, insults, and false statements are not permitted. My role is to keep this conversation respectful and productive.
-
-2. 💬 Write Your Opening Statement.
-Your first task is to present your full case to me. Be thorough: describe the events from your perspective and state what a fair and specific agreement looks like to you. The more detail you provide, the better I can understand your position.
-
-3. ➕ Add All Relevant Evidence.
-Facts provide clarity. Please use the upload feature to add any relevant documents, screenshots, or recordings that support your case. All information you share is confidential and will be permanently deleted 120 days after this case is closed.
-
-**How to Interact with Me:**
-To ask me a direct question, start your message with @DAI.
-When you are ready for a solution, type @DAI Propose an Agreement.
-
-**Please begin with your opening statements.**`;
-
-  let content = '';
-  try {
-    const completion = await openai.chat.completions.create({
-      model: process.env.OPENAI_INTRO_MODEL || process.env.OPENAI_SUMMARY_MODEL || 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: desc ? `Disagreement description:\n\n${desc}` : 'No description provided.' },
-      ],
-      temperature: 0.3,
-      max_tokens: 220,
-    });
-    content = (completion?.choices?.[0]?.message?.content || '').trim();
-  } catch (e) {
-    console.error('[AI] getAIClarifyingIntroduction error:', e?.message || e);
-  }
-
-  if (!content) {
-    const summary = desc ? desc.replace(/\s+/g, ' ').trim() : '';
-    const inserted = summary ? `**${summary.length > 300 ? summary.slice(0, 297) + '...' : summary}**` : '**(no description provided)**';
-    content = `Hello, I am DAI. I am here to help you find a clear, mutual agreement.\n\nMy understanding is the core issue is: ${inserted}.\n\nTo make this process fair and productive, please follow these three principles:\n\n1. 💯 Respect Each Other.\nFocus on the facts of the issue, not the person. Personal attacks, insults, and false statements are not permitted. My role is to keep this conversation respectful and productive.\n\n2. 💬 Write Your Opening Statement.\nYour first task is to present your full case to me. Be thorough: describe the events from your perspective and state what a fair and specific agreement looks like to you. The more detail you provide, the better I can understand your position.\n\n3. ➕ Add All Relevant Evidence.\nFacts provide clarity. Please use the upload feature to add any relevant documents, screenshots, or recordings that support your case. All information you share is confidential and will be permanently deleted 120 days after this case is closed.\n\n**How to Interact with Me:**\nTo ask me a direct question, start your message with @DAI.\nWhen you are ready for a solution, type @DAI Propose an Agreement.\n\n**Please begin with your opening statements.**`;
-  }
-
-  return content;
+export async function getAIClarifyingIntroduction() {
+  console.log('[STATIC] Returning the hardcoded DAI introduction message.');
+  return `Hello, I am DAI. I am here to help you find a clear, mutual agreement.\n\nTo make this process fair and productive, please follow these three principles:\n\n1. 💯 Respect Each Other.\nFocus on the facts of the issue, not the person. Personal attacks, insults, and false statements are not permitted. My role is to keep this conversation respectful and productive.\n\n2. 💬 Write Your Opening Statement.\nYour first task is to present your full case to me. Be thorough: describe the events from your perspective and state what a fair and specific agreement looks like to you. The more detail you provide, the better I can understand your position.\n\n3. ➕ Add All Relevant Evidence.\nFacts provide clarity. Please use the upload feature to add any relevant documents, screenshots, or recordings that support your case. All information you share is confidential and will be permanently deleted 120 days after this case is closed.\n\n**How to Interact with Me:**\nTo ask me a direct question, start your message with @DAI.\nWhen you are ready for a solution, type @DAI Propose an Agreement.\n\n**Please begin with your opening statements.**`;
 }
 
 // AI Active Listening: Respond when users summon the mediator directly

@@ -308,7 +308,7 @@ io.on('connection', (socket) => {
                 await disagreement.save();
 
                 // 2. Call the CORRECT AI service for the introductory message
-                const aiIntroMessageText = await getAIClarifyingIntroduction(disagreement.description);
+                const aiIntroMessageText = await getAIClarifyingIntroduction();
 
                 // 3-4. Save the AI's message to the embedded messages array
                 const sender = process.env.AI_MEDIATOR_USER_ID;

@@ -33,8 +33,8 @@ dotenv.config({ path: path.resolve(__dirname, '../services/.env') });
 const AI_MEDIATOR_ID = process.env.AI_MEDIATOR_USER_ID;
 const AI_MEDIATOR_ID_VALID = !!(AI_MEDIATOR_ID && (mongoose?.isValidObjectId ? mongoose.isValidObjectId(AI_MEDIATOR_ID) : mongoose.Types.ObjectId.isValid(AI_MEDIATOR_ID)));
 if (!AI_MEDIATOR_ID) {
-    console.warn('[config] AI_MEDIATOR_USER_ID is not set. The AI Mediator will not be able to post messages.');
-    console.warn('[config] To fix: Create an "AI Mediator" user in MongoDB, copy its _id, then set AI_MEDIATOR_USER_ID in Render (Dashboard -> Environment).');
+    console.warn('[config] AI_MEDIATOR_USER_ID is not set. DAI will not be able to post messages.');
+    console.warn('[config] To fix: Create a "DAI" user in MongoDB (isAi: true), copy its _id, then set AI_MEDIATOR_USER_ID in Render (Dashboard -> Environment).');
 } else if (!AI_MEDIATOR_ID_VALID) {
     console.warn(`[config] AI_MEDIATOR_USER_ID is set but not a valid MongoDB ObjectId: ${AI_MEDIATOR_ID}. Use the _id from the AI user document in MongoDB.`);
 } else {
@@ -101,6 +101,9 @@ const io = new Server(httpServer, {
         credentials: true,
     }
 });
+
+// Expose Socket.IO instance to routes via app locals
+app.set('io', io);
 
 // Middleware
 app.use(cors(CORS_OPTIONS));
@@ -324,7 +327,7 @@ io.on('connection', (socket) => {
                 } catch (_) {}
                 const populatedAiMessage = {
                     _id: saved?._id,
-                    sender: aiUserDoc ? { _id: aiUserDoc._id, name: aiUserDoc.name } : { _id: sender, name: 'AI Mediator' },
+                    sender: aiUserDoc ? { _id: aiUserDoc._id, name: aiUserDoc.name } : { _id: sender, name: 'DAI' },
                     text: aiIntroMessage,
                     isAIMessage: true
                 };

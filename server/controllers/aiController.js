@@ -229,16 +229,26 @@ Do not be overly sensitive. The goal is to prevent abuse, not to police tone. On
 // New AI service: Clarifying Introduction for AI Mediator
 export async function getAIClarifyingIntroduction(description) {
   const desc = (description || '').toString().trim();
-  const systemPrompt = `You are an expert AI mediator for Disagreement.AI. Your role is to initiate a constructive dialogue. You will be given the description of a disagreement.
+  const systemPrompt = `Hello, I am DAI. I am here to help you find a clear, mutual agreement.
 
-Your task is to write the *very first message* in the chat. Your message must be calm, neutral, and professional.
+My understanding is the core issue is: **[DAI summary will be inserted here]**.
 
-Follow this structure precisely:
-1.  A brief, welcoming statement acknowledging both parties are present.
-2.  A concise, one-sentence summary of the core issue based on the description to show you understand the context.
-3.  One or two open-ended, clarifying questions directed at both parties to start the conversation.
+To make this process fair and productive, please follow these three principles:
 
-Your questions should be designed to elicit facts and perspectives, not to assign blame.`;
+1. 💯 Respect Each Other.
+Focus on the facts of the issue, not the person. Personal attacks, insults, and false statements are not permitted. My role is to keep this conversation respectful and productive.
+
+2. 💬 Write Your Opening Statement.
+Your first task is to present your full case to me. Be thorough: describe the events from your perspective and state what a fair and specific agreement looks like to you. The more detail you provide, the better I can understand your position.
+
+3. ➕ Add All Relevant Evidence.
+Facts provide clarity. Please use the upload feature to add any relevant documents, screenshots, or recordings that support your case. All information you share is confidential and will be permanently deleted 120 days after this case is closed.
+
+**How to Interact with Me:**
+To ask me a direct question, start your message with @DAI.
+When you are ready for a solution, type @DAI Propose an Agreement.
+
+**Please begin with your opening statements.**`;
 
   let content = '';
   try {
@@ -257,16 +267,9 @@ Your questions should be designed to elicit facts and perspectives, not to assig
   }
 
   if (!content) {
-    // Safe fallback content
-    const fallback = [];
-    fallback.push('Welcome — I see both of you are here.');
-    if (desc) {
-      fallback.push(`From your description, it sounds like the core issue is: ${desc.slice(0, 140)}${desc.length > 140 ? '...' : ''}`);
-    } else {
-      fallback.push('I understand there is a disagreement you’d like to discuss.');
-    }
-    fallback.push('To get us started: What outcome would each of you consider fair, and what key facts do you think are most important to establish?');
-    content = fallback.join(' ');
+    const summary = desc ? desc.replace(/\s+/g, ' ').trim() : '';
+    const inserted = summary ? `**${summary.length > 300 ? summary.slice(0, 297) + '...' : summary}**` : '**(no description provided)**';
+    content = `Hello, I am DAI. I am here to help you find a clear, mutual agreement.\n\nMy understanding is the core issue is: ${inserted}.\n\nTo make this process fair and productive, please follow these three principles:\n\n1. 💯 Respect Each Other.\nFocus on the facts of the issue, not the person. Personal attacks, insults, and false statements are not permitted. My role is to keep this conversation respectful and productive.\n\n2. 💬 Write Your Opening Statement.\nYour first task is to present your full case to me. Be thorough: describe the events from your perspective and state what a fair and specific agreement looks like to you. The more detail you provide, the better I can understand your position.\n\n3. ➕ Add All Relevant Evidence.\nFacts provide clarity. Please use the upload feature to add any relevant documents, screenshots, or recordings that support your case. All information you share is confidential and will be permanently deleted 120 days after this case is closed.\n\n**How to Interact with Me:**\nTo ask me a direct question, start your message with @DAI.\nWhen you are ready for a solution, type @DAI Propose an Agreement.\n\n**Please begin with your opening statements.**`;
   }
 
   return content;

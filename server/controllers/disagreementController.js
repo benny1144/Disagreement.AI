@@ -92,7 +92,8 @@ const getDisagreement = asyncHandler(async (req, res) => {
         .populate('creator', 'name')
         .populate('participants.user', 'name email')
         .populate('pendingInvitations', 'name email')
-        .populate('messages.sender', 'name');
+        .populate('messages.sender', 'name')
+        .populate('messages.agreements.user', 'name');
 
     if (!disagreement) {
         res.status(404);

@@ -6,6 +6,12 @@ const messageSchema = mongoose.Schema({
     text: { type: String, required: true },
     isAIMessage: { type: Boolean, default: false },
     isProposal: { type: Boolean, default: false },
+    agreements: [
+        {
+            user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+            agreedAt: { type: Date, default: Date.now }
+        }
+    ],
     timestamp: { type: Date, default: Date.now }
 });
 

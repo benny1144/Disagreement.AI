@@ -55,6 +55,46 @@ export default function ChatPage(): JSX.Element {
   const { user, token } = useAuth()
   const currentUserId = user?._id || (user as any)?.id || null
 
+  // Render the special DAI introduction with larger emojis and spaced paragraphs
+  const renderDAIIntro = (raw: string) => {
+    try {
+      const lines = String(raw || '').split(/\r?\n/).map(l => l.trim());
+      const elements: JSX.Element[] = [];
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (!line) continue;
+        const m = line.match(/^([1-3])\.\s*(.+)$/);
+        if (m) {
+          let rest = m[2];
+          let emoji = '';
+          ['💯','💬','➕'].forEach(e => {
+            if (!emoji && rest.includes(e)) {
+              emoji = e;
+              rest = rest.replace(e, '').trim();
+            }
+          });
+          elements.push(
+            <div key={`h-${i}`} className="flex items-center gap-2 mt-3">
+              <span className="text-4xl leading-none" aria-hidden>{emoji || '•'}</span>
+              <span className="text-lg font-semibold">{rest}</span>
+            </div>
+          );
+          const next = (lines[i+1] || '').trim();
+          if (next && !/^[1-3]\./.test(next)) {
+            elements.push(<p key={`p-${i}`} className="mb-4">{next}</p>);
+            i++;
+          }
+          continue;
+        }
+        // Default paragraph (no extra margin)
+        elements.push(<p key={`t-${i}`}>{line}</p>);
+      }
+      return <div>{elements}</div>;
+    } catch {
+      return <p className="text-lg whitespace-pre-wrap">{String(raw || '')}</p>;
+    }
+  }
+
   const openInviteModal = () => setInviteModalOpen(true)
   const closeInviteModal = () => setInviteModalOpen(false)
   const openManagerModal = () => setManagerModalOpen(true)
@@ -117,10 +157,24 @@ export default function ChatPage(): JSX.Element {
     socket.on('receive_message', handleReceive)
     socket.on('systemMessage', handleSystemMessage)
 
+    const handleProposalUpdated = (updated: any) => {
+      if (!updated || !updated._id) return
+      setDisagreement((prev) => {
+        const prevMsgs = Array.isArray(prev.messages) ? prev.messages : []
+        const idx = prevMsgs.findIndex((m: any) => String(m?._id) === String(updated._id))
+        if (idx === -1) return prev
+        const nextMsgs = [...prevMsgs]
+        nextMsgs[idx] = updated as any
+        return { ...prev, messages: nextMsgs }
+      })
+    }
+    socket.on('proposalUpdated', handleProposalUpdated)
+
     return () => {
       socket.off('connect', handleConnect)
       socket.off('receive_message', handleReceive)
       socket.off('systemMessage', handleSystemMessage)
+      socket.off('proposalUpdated', handleProposalUpdated)
       socket.disconnect()
       socketRef.current = null
     }
@@ -318,11 +372,11 @@ export default function ChatPage(): JSX.Element {
                 ) : (
                   disagreement.messages.map((msg, idx) => {
                     if ((msg as any)?.isProposal) {
-                      return (<ProposalMessage key={msg._id || idx} message={msg as any} />)
+                      return (<ProposalMessage key={msg._id || idx} message={msg as any} disagreementId={String(id)} />)
                     }
                     const senderId = typeof msg.sender === 'object' ? (msg.sender?._id || (msg as any).sender?.id) : (msg as any).sender
                     const isMine = currentUserId && senderId && String(senderId) === String(currentUserId)
-                    const isAI = Boolean((msg as any)?.isAIMessage) || (typeof msg.sender === 'object' && typeof (msg as any)?.sender?.name === 'string' && ((msg as any).sender.name as string).toLowerCase() === 'ai mediator')
+                    const isAI = Boolean((msg as any)?.isAIMessage) || (typeof msg.sender === 'object' && typeof (msg as any)?.sender?.name === 'string' && ['ai mediator','dai'].includes(((msg as any).sender.name as string).toLowerCase()))
                     const senderName = ((msg as any)?.sender && (msg as any).sender.name) ? (msg as any).sender.name : (isAI ? 'Mediator' : (isMine ? 'You' : 'Participant'))
 
                     return (
@@ -336,7 +390,9 @@ export default function ChatPage(): JSX.Element {
                           <div
                             className={`${isMine ? 'bg-slate-200 text-slate-900 self-end' : isAI ? 'bg-[#F3F4FF] text-slate-900' : 'bg-slate-100 text-slate-900'} px-4 py-2 rounded-2xl shadow-sm`}
                           >
-                            <p className="text-lg">{msg.text}</p>
+                            {isAI && typeof msg.text === 'string' && msg.text.trim().toLowerCase().startsWith('hello, i am dai.')
+                              ? renderDAIIntro(String(msg.text))
+                              : <p className="text-lg whitespace-pre-wrap">{msg.text}</p>}
                           </div>
                         </div>
                       </div>

@@ -61,7 +61,7 @@ async function triggerInactivityAI(roomId, io) {
     } catch (_) {}
     const populatedAiMessage = {
       _id: saved?._id,
-      sender: aiUserDoc ? { _id: aiUserDoc._id, name: aiUserDoc.name } : { _id: aiSenderId, name: 'AI Mediator' },
+      sender: aiUserDoc ? { _id: aiUserDoc._id, name: aiUserDoc.name } : { _id: aiSenderId, name: 'DAI' },
       text: aiReEngagementText,
       isAIMessage: true
     };
@@ -79,10 +79,10 @@ async function analyzeMessage(message, roomId, io) {
   try {
     const text = (message?.text || '').toString();
     const messageText = text.toLowerCase();
-    const summonKeywords = ['@mediator', 'ai mediator', 'mediator,', 'ask the ai'];
+    const summonKeywords = ['@dai'];
 
     // 0) Resolution Proposal (highest priority)
-    const proposalTrigger = '@mediator propose a resolution';
+    const proposalTrigger = '@dai propose an agreement';
     if (messageText.includes(proposalTrigger)) {
       console.log(`[AI Analysis] Resolution Proposal triggered for room ${roomId}.`);
       const aiSenderId = process.env.AI_MEDIATOR_USER_ID;
@@ -119,7 +119,7 @@ async function analyzeMessage(message, roomId, io) {
       } catch (_) {}
       const populatedAiMessage = {
         _id: saved?._id,
-        sender: aiUserDoc ? { _id: aiUserDoc._id, name: aiUserDoc.name } : { _id: aiSenderId, name: 'AI Mediator' },
+        sender: aiUserDoc ? { _id: aiUserDoc._id, name: aiUserDoc.name } : { _id: aiSenderId, name: 'DAI' },
         text: proposalText,
         isAIMessage: true,
         isProposal: true
@@ -167,7 +167,7 @@ async function analyzeMessage(message, roomId, io) {
       } catch (_) {}
       const populatedAiMessage = {
         _id: saved?._id,
-        sender: aiUserDoc ? { _id: aiUserDoc._id, name: aiUserDoc.name } : { _id: aiSenderId, name: 'AI Mediator' },
+        sender: aiUserDoc ? { _id: aiUserDoc._id, name: aiUserDoc.name } : { _id: aiSenderId, name: 'DAI' },
         text: aiResponseText,
         isAIMessage: true
       };
@@ -208,7 +208,7 @@ async function analyzeMessage(message, roomId, io) {
       } catch (_) {}
       const populatedAiMessage = {
         _id: saved?._id,
-        sender: aiUserDoc ? { _id: aiUserDoc._id, name: aiUserDoc.name } : { _id: aiSenderId, name: 'AI Mediator' },
+        sender: aiUserDoc ? { _id: aiUserDoc._id, name: aiUserDoc.name } : { _id: aiSenderId, name: 'DAI' },
         text: deEscalationText,
         isAIMessage: true
       };

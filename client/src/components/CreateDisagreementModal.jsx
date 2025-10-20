@@ -126,7 +126,7 @@ function CreateDisagreementModal({ isOpen, onClose, onCreate }) {
       onClose();
 
       if (createdDisagreement?._id) {
-        navigate(`/disagreement/${createdDisagreement._id}`);
+        navigate('/dashboard');
       }
     } catch (err) {
       const message = err?.response?.data?.message || err?.message || 'Failed to create disagreement.';

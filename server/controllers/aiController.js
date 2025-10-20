@@ -362,3 +362,64 @@ export async function classifyMessageToxicity(messageText) {
     return 'NEUTRAL';
   }
 }
+
+
+// AI Re-engagement: gentle nudge after inactivity (single, polite question)
+export async function getAIReEngagementMessage(messageHistory) {
+  try {
+    const history = Array.isArray(messageHistory) ? messageHistory : [];
+    const MAX = Number(process.env.AI_REENGAGE_HISTORY_LIMIT || 20);
+    const sanitize = (v) => (v == null ? '' : String(v)).replace(/\s+/g, ' ').trim();
+    const formatted = history
+      .slice(Math.max(0, history.length - MAX))
+      .map((m) => `- ${sanitize(m?.text || '')}`)
+      .filter(Boolean)
+      .join('\n');
+
+    const systemPrompt = `You are an AI Mediator. The conversation has been inactive for a while. Your task is to write a brief, neutral, and open-ended message to encourage the participants to continue the discussion.
+
+- Do not summarize the past conversation.
+- Do not take a side.
+- Your message should be a gentle nudge.
+
+Examples:
+- "Just checking in. Is there anything else either of you would like to add at this point?"
+- "Is there another aspect of this issue we could explore?"
+- "What are your current thoughts on the last point that was made?"
+
+Keep your response to a single, polite question.`;
+
+    const userContent = formatted
+      ? `Recent chat lines (newest last):\n${formatted}\n\nWrite a single, polite question to re-engage the participants.`
+      : 'Write a single, polite question to re-engage the participants.';
+
+    let content = '';
+    try {
+      const completion = await openai.chat.completions.create({
+        model: process.env.OPENAI_REENGAGEMENT_MODEL || process.env.OPENAI_SUMMARY_MODEL || 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userContent },
+        ],
+        temperature: 0.3,
+        max_tokens: 80,
+      });
+      content = (completion?.choices?.[0]?.message?.content || '').trim();
+    } catch (e) {
+      console.error('[AI] getAIReEngagementMessage error:', e?.message || e);
+    }
+
+    if (!content) {
+      // Safe fallback from examples (single polite question)
+      content = 'Just checking in. Is there anything else either of you would like to add at this point?';
+    }
+
+    // Ensure it's a single line question; trim and enforce a question mark if missing
+    content = content.replace(/\s+/g, ' ').trim();
+    if (!/[?？]$/.test(content)) content = content + '?';
+    return content;
+  } catch (err) {
+    console.error('getAIReEngagementMessage internal error:', err);
+    return 'Just checking in. Is there anything else either of you would like to add at this point?';
+  }
+}

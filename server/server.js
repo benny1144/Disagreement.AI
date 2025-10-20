@@ -14,7 +14,8 @@ import userRoutes from './routes/userRoutes.js';
 import disagreementRoutes from './routes/disagreementRoutes.js';
 import contactRoutes from './routes/contactRoutes.js'; // --- (Step 1: Import the new contact routes) ---
 import aiRoutes from './routes/aiRoutes.js';
-import { getAIClarifyingIntroduction, getAIResponseToSummon, classifyMessageToxicity } from './controllers/aiController.js';
+import { getAIClarifyingIntroduction } from './controllers/aiController.js';
+import * as aiAnalysisService from './services/aiAnalysisService.js';
 
 // Load environment variables from project root, then local, then fallback to services/.env if needed
 import path from 'path';
@@ -270,6 +271,7 @@ app.use((err, req, res, _next) => {
     return res.end(JSON.stringify(payload));
 });
 
+
 // Socket.IO connection logic
 io.on('connection', (socket) => {
     console.log('A user connected:', socket.id);
@@ -280,6 +282,12 @@ io.on('connection', (socket) => {
             if (!roomId) return;
 
             await socket.join(roomId);
+
+            // Track joined room on the socket for cleanup on disconnect
+            try {
+                socket.data = socket.data || {};
+                socket.data.roomId = roomId;
+            } catch (_) {}
 
             const room = io.sockets.adapter.rooms.get(roomId);
             const numClients = room ? room.size : 0;
@@ -368,9 +376,12 @@ io.on('connection', (socket) => {
             }
             io.to(roomId).emit('receive_message', populatedMessage)
 
+            // Reset inactivity timer on human message
+            aiAnalysisService.resetRoomTimer(roomId, io)
+
             // Route the message through the AI analysis hub (non-blocking on failure)
             try {
-                await analyzeMessage(populatedMessage, roomId, io)
+                await aiAnalysisService.analyzeMessage(populatedMessage, roomId, io)
             } catch (anErr) {
                 console.error('[AI Analysis] analyzeMessage error:', anErr?.message || anErr)
             }
@@ -381,106 +392,21 @@ io.on('connection', (socket) => {
 
     socket.on('disconnect', () => {
         console.log('User disconnected:', socket.id);
+        try {
+            const roomId = socket?.data?.roomId;
+            if (roomId) {
+                const room = io.sockets.adapter.rooms.get(roomId);
+                const numClients = room ? room.size : 0;
+                if (numClients === 0) {
+                    aiAnalysisService.clearRoomTimer(roomId);
+                }
+            }
+        } catch (e) {
+            console.error('[Timer] disconnect cleanup error:', e?.message || e);
+        }
     });
 });
 
-// AI Active Listening Hub: invoked for every new human message
-async function analyzeMessage(message, roomId, io) {
-    try {
-        const text = (message?.text || '').toString()
-        const messageText = text.toLowerCase()
-        const summonKeywords = ['@mediator', 'ai mediator', 'mediator,', 'ask the ai']
-
-        // 1) Summon Rule
-        const isSummoned = summonKeywords.some(keyword => messageText.includes(keyword))
-        if (isSummoned) {
-            console.log(`[AI Analysis] Summon detected in room ${roomId}.`)
-
-            // Fetch conversation history with populated sender names
-            const disagreement = await Disagreement.findById(roomId).populate({
-                path: 'messages.sender',
-                select: 'name'
-            })
-            if (!disagreement) return
-            const messageHistory = Array.isArray(disagreement.messages) ? disagreement.messages : []
-
-            // Call AI service for summon response
-            let aiResponseText = ''
-            try {
-                aiResponseText = await getAIResponseToSummon(messageHistory, text)
-            } catch (e) {
-                console.error('[AI Analysis] getAIResponseToSummon error:', e?.message || e)
-            }
-            if (!aiResponseText) return
-
-            // Save + emit AI response
-            const aiSenderId = process.env.AI_MEDIATOR_USER_ID
-            if (!aiSenderId) {
-                console.warn('[AI Analysis] AI_MEDIATOR_USER_ID not set; cannot emit AI response to summon.')
-                return
-            }
-
-            disagreement.messages.push({ sender: aiSenderId, text: aiResponseText, isAIMessage: true })
-            await disagreement.save()
-
-            const saved = disagreement.messages[disagreement.messages.length - 1]
-            let aiUserDoc = null
-            try {
-                aiUserDoc = await User.findById(aiSenderId).select('name')
-            } catch (_) {}
-            const populatedAiMessage = {
-                _id: saved?._id,
-                sender: aiUserDoc ? { _id: aiUserDoc._id, name: aiUserDoc.name } : { _id: aiSenderId, name: 'AI Mediator' },
-                text: aiResponseText,
-                isAIMessage: true
-            }
-            io.to(roomId).emit('receive_message', populatedAiMessage)
-            console.log(`[AI Analysis] AI response sent to room ${roomId}.`)
-            return
-        }
-
-        // 2) Toxicity Check (runs only if not summoned)
-        let classification = 'NEUTRAL'
-        try {
-            classification = await classifyMessageToxicity(text)
-        } catch (e) {
-            console.error('[AI Analysis] classifyMessageToxicity error:', e?.message || e)
-        }
-        console.log(`[AI Analysis] Message classification: ${classification}`)
-
-        if (classification === 'TOXIC') {
-            console.log(`[AI Analysis] Toxicity detected in room ${roomId}. Triggering de-escalation.`)
-            const deEscalationText = "A reminder to all participants: Please focus on the issue, not the person. Let's maintain a respectful conversation."
-
-            const aiSenderId = process.env.AI_MEDIATOR_USER_ID
-            if (!aiSenderId) {
-                console.warn('[AI Analysis] AI_MEDIATOR_USER_ID not set; cannot emit de-escalation message.')
-                return
-            }
-
-            const disagreement = await Disagreement.findById(roomId)
-            if (!disagreement) return
-
-            disagreement.messages.push({ sender: aiSenderId, text: deEscalationText, isAIMessage: true })
-            await disagreement.save()
-
-            const saved = disagreement.messages[disagreement.messages.length - 1]
-            let aiUserDoc = null
-            try {
-                aiUserDoc = await User.findById(aiSenderId).select('name')
-            } catch (_) {}
-            const populatedAiMessage = {
-                _id: saved?._id,
-                sender: aiUserDoc ? { _id: aiUserDoc._id, name: aiUserDoc.name } : { _id: aiSenderId, name: 'AI Mediator' },
-                text: deEscalationText,
-                isAIMessage: true
-            }
-            io.to(roomId).emit('receive_message', populatedAiMessage)
-        }
-    } catch (err) {
-        console.error('[AI Analysis] analyzeMessage internal error:', err?.message || err)
-    }
-}
 
 const PORT = process.env.PORT || 3000;
 

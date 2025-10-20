@@ -308,6 +308,7 @@ io.on('connection', (socket) => {
                 await disagreement.save();
 
                 // 2. Call the AI service for the introductory message
+                console.log('[AI Trigger] Activating DAI. Calling getAIClarifyingIntroduction...');
                 const aiIntroMessage = await getAIClarifyingIntroduction(disagreement.description);
 
                 // 3-4. Save the AI's message to the embedded messages array

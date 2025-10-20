@@ -14,7 +14,7 @@ import userRoutes from './routes/userRoutes.js';
 import disagreementRoutes from './routes/disagreementRoutes.js';
 import contactRoutes from './routes/contactRoutes.js'; // --- (Step 1: Import the new contact routes) ---
 import aiRoutes from './routes/aiRoutes.js';
-import { getAIClarifyingIntroduction, getAIResponseToSummon } from './controllers/aiController.js';
+import { getAIClarifyingIntroduction, getAIResponseToSummon, classifyMessageToxicity } from './controllers/aiController.js';
 
 // Load environment variables from project root, then local, then fallback to services/.env if needed
 import path from 'path';
@@ -279,7 +279,7 @@ io.on('connection', (socket) => {
             const roomId = data?.roomId;
             if (!roomId) return;
 
-            socket.join(roomId);
+            await socket.join(roomId);
 
             const room = io.sockets.adapter.rooms.get(roomId);
             const numClients = room ? room.size : 0;
@@ -391,55 +391,92 @@ async function analyzeMessage(message, roomId, io) {
         const messageText = text.toLowerCase()
         const summonKeywords = ['@mediator', 'ai mediator', 'mediator,', 'ask the ai']
 
-        // Check for summon keywords
+        // 1) Summon Rule
         const isSummoned = summonKeywords.some(keyword => messageText.includes(keyword))
+        if (isSummoned) {
+            console.log(`[AI Analysis] Summon detected in room ${roomId}.`)
 
-        if (!isSummoned) {
-            return // no-op for now; future rules (toxicity, etc.) will go here
-        }
+            // Fetch conversation history with populated sender names
+            const disagreement = await Disagreement.findById(roomId).populate({
+                path: 'messages.sender',
+                select: 'name'
+            })
+            if (!disagreement) return
+            const messageHistory = Array.isArray(disagreement.messages) ? disagreement.messages : []
 
-        console.log(`[AI Analysis] Summon detected in room ${roomId}.`)
+            // Call AI service for summon response
+            let aiResponseText = ''
+            try {
+                aiResponseText = await getAIResponseToSummon(messageHistory, text)
+            } catch (e) {
+                console.error('[AI Analysis] getAIResponseToSummon error:', e?.message || e)
+            }
+            if (!aiResponseText) return
 
-        // 1. Fetch the full conversation history with sender names populated
-        const disagreement = await Disagreement.findById(roomId).populate({
-            path: 'messages.sender',
-            select: 'name'
-        })
-        if (!disagreement) return
-        const messageHistory = Array.isArray(disagreement.messages) ? disagreement.messages : []
+            // Save + emit AI response
+            const aiSenderId = process.env.AI_MEDIATOR_USER_ID
+            if (!aiSenderId) {
+                console.warn('[AI Analysis] AI_MEDIATOR_USER_ID not set; cannot emit AI response to summon.')
+                return
+            }
 
-        // 2. Call the AI service to get the response
-        let aiResponseText = ''
-        try {
-            aiResponseText = await getAIResponseToSummon(messageHistory, text)
-        } catch (e) {
-            console.error('[AI Analysis] getAIResponseToSummon error:', e?.message || e)
-        }
-        if (!aiResponseText) return
+            disagreement.messages.push({ sender: aiSenderId, text: aiResponseText, isAIMessage: true })
+            await disagreement.save()
 
-        // 3. Save and broadcast the AI's response
-        const aiSenderId = process.env.AI_MEDIATOR_USER_ID
-        if (!aiSenderId) {
-            console.warn('[AI Analysis] AI_MEDIATOR_USER_ID not set; cannot emit AI response to summon.')
+            const saved = disagreement.messages[disagreement.messages.length - 1]
+            let aiUserDoc = null
+            try {
+                aiUserDoc = await User.findById(aiSenderId).select('name')
+            } catch (_) {}
+            const populatedAiMessage = {
+                _id: saved?._id,
+                sender: aiUserDoc ? { _id: aiUserDoc._id, name: aiUserDoc.name } : { _id: aiSenderId, name: 'AI Mediator' },
+                text: aiResponseText,
+                isAIMessage: true
+            }
+            io.to(roomId).emit('receive_message', populatedAiMessage)
+            console.log(`[AI Analysis] AI response sent to room ${roomId}.`)
             return
         }
 
-        disagreement.messages.push({ sender: aiSenderId, text: aiResponseText, isAIMessage: true })
-        await disagreement.save()
-
-        const saved = disagreement.messages[disagreement.messages.length - 1]
-        let aiUserDoc = null
+        // 2) Toxicity Check (runs only if not summoned)
+        let classification = 'NEUTRAL'
         try {
-            aiUserDoc = await User.findById(aiSenderId).select('name')
-        } catch (_) {}
-        const populatedAiMessage = {
-            _id: saved?._id,
-            sender: aiUserDoc ? { _id: aiUserDoc._id, name: aiUserDoc.name } : { _id: aiSenderId, name: 'AI Mediator' },
-            text: aiResponseText,
-            isAIMessage: true
+            classification = await classifyMessageToxicity(text)
+        } catch (e) {
+            console.error('[AI Analysis] classifyMessageToxicity error:', e?.message || e)
         }
-        io.to(roomId).emit('receive_message', populatedAiMessage)
-        console.log(`[AI Analysis] AI response sent to room ${roomId}.`)
+        console.log(`[AI Analysis] Message classification: ${classification}`)
+
+        if (classification === 'TOXIC') {
+            console.log(`[AI Analysis] Toxicity detected in room ${roomId}. Triggering de-escalation.`)
+            const deEscalationText = "A reminder to all participants: Please focus on the issue, not the person. Let's maintain a respectful conversation."
+
+            const aiSenderId = process.env.AI_MEDIATOR_USER_ID
+            if (!aiSenderId) {
+                console.warn('[AI Analysis] AI_MEDIATOR_USER_ID not set; cannot emit de-escalation message.')
+                return
+            }
+
+            const disagreement = await Disagreement.findById(roomId)
+            if (!disagreement) return
+
+            disagreement.messages.push({ sender: aiSenderId, text: deEscalationText, isAIMessage: true })
+            await disagreement.save()
+
+            const saved = disagreement.messages[disagreement.messages.length - 1]
+            let aiUserDoc = null
+            try {
+                aiUserDoc = await User.findById(aiSenderId).select('name')
+            } catch (_) {}
+            const populatedAiMessage = {
+                _id: saved?._id,
+                sender: aiUserDoc ? { _id: aiUserDoc._id, name: aiUserDoc.name } : { _id: aiSenderId, name: 'AI Mediator' },
+                text: deEscalationText,
+                isAIMessage: true
+            }
+            io.to(roomId).emit('receive_message', populatedAiMessage)
+        }
     } catch (err) {
         console.error('[AI Analysis] analyzeMessage internal error:', err?.message || err)
     }

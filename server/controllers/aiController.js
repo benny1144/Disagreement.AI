@@ -325,3 +325,40 @@ You will be given the entire chat history for context, and the user's specific m
 
   return content;
 }
+
+
+// --- Toxicity Classification (Groq) ---
+export async function classifyMessageToxicity(messageText) {
+  try {
+    const text = (messageText == null ? '' : String(messageText)).trim();
+    if (!text) return 'NEUTRAL';
+
+    if (!groq) {
+      console.warn('GROQ_API_KEY not set or Groq client not initialized. Defaulting toxicity classification to NEUTRAL.');
+      return 'NEUTRAL';
+    }
+
+    const completion = await groq.chat.completions.create({
+      model: process.env.GROQ_GUARDRAIL_MODEL || 'llama-3.1-8b-instant',
+      temperature: 0.1,
+      messages: [
+        {
+          role: 'system',
+          content:
+            `You are a content classification AI. Analyze the user's message for its tone and intent. Classify it into one of three categories: NEUTRAL, NEGATIVE, or TOXIC. 
+          - NEUTRAL: A standard, respectful message.
+          - NEGATIVE: A message expressing frustration or disagreement, but not attacking a person.
+          - TOXIC: A message containing personal insults, swearing, or aggressive, non-constructive language.
+          Respond with only a single word: NEUTRAL, NEGATIVE, or TOXIC.`,
+        },
+        { role: 'user', content: text },
+      ],
+    });
+
+    const classification = completion?.choices?.[0]?.message?.content?.trim().toUpperCase();
+    return classification || 'NEUTRAL';
+  } catch (error) {
+    console.error('Error in classifyMessageToxicity:', error);
+    return 'NEUTRAL';
+  }
+}

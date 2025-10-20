@@ -1,9 +1,11 @@
 import Disagreement from '../models/disagreementModel.js';
 import User from '../models/userModel.js';
-import { getAIResponseToSummon, classifyMessageToxicity, getAIReEngagementMessage } from '../controllers/aiController.js';
+import { getAIResponseToSummon, classifyMessageToxicity, getAIReEngagementMessage, getAISummary } from '../controllers/aiController.js';
 
 // Inactivity timer cache per room (AI Re-engagement v2.3)
 const roomTimers = {};
+// Per-room message counter for summarization (v2.5)
+const roomMessageCounters = {};
 
 function resetRoomTimer(roomId, io) {
   try {
@@ -165,17 +167,69 @@ async function analyzeMessage(message, roomId, io) {
       };
       io.to(roomId).emit('receive_message', populatedAiMessage);
     }
+
+    // 3) Summarization Check (runs last)
+    try {
+      roomMessageCounters[roomId] = (roomMessageCounters[roomId] || 0) + 1;
+      if (roomMessageCounters[roomId] >= (Number(process.env.AI_SUMMARY_MESSAGE_THRESHOLD || 8))) {
+        console.log(`[AI Analysis] Summarization trigger met for room ${roomId}.`);
+        // reset counter immediately to prevent duplicate triggers
+        roomMessageCounters[roomId] = 0;
+
+        const aiSenderId = process.env.AI_MEDIATOR_USER_ID;
+        if (!aiSenderId) {
+          console.warn('[AI Analysis] AI_MEDIATOR_USER_ID not set; cannot emit summary message.');
+        } else {
+          const disagreement = await Disagreement.findById(roomId).populate({
+            path: 'messages.sender',
+            select: 'name'
+          });
+          if (disagreement) {
+            let summaryText = '';
+            try {
+              summaryText = await getAISummary(disagreement.messages);
+            } catch (e) {
+              console.error('[AI Analysis] getAISummary error:', e?.message || e);
+            }
+            if (summaryText) {
+              disagreement.messages.push({ sender: aiSenderId, text: summaryText, isAIMessage: true });
+              await disagreement.save();
+
+              const saved = disagreement.messages[disagreement.messages.length - 1];
+              let aiUserDoc = null;
+              try {
+                aiUserDoc = await User.findById(aiSenderId).select('name');
+              } catch (_) {}
+              const populatedAiMessage = {
+                _id: saved?._id,
+                sender: aiUserDoc ? { _id: aiUserDoc._id, name: aiUserDoc.name } : { _id: aiSenderId, name: 'AI Mediator' },
+                text: summaryText,
+                isAIMessage: true
+              };
+              io.to(roomId).emit('receive_message', populatedAiMessage);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.error('[AI Analysis] summarization check error:', e?.message || e);
+    }
   } catch (err) {
     console.error('[AI Analysis] analyzeMessage internal error:', err?.message || err);
   }
 }
 
-function clearRoomTimer(roomId) {
-  if (roomId && roomTimers[roomId]) {
+function cleanupRoomState(roomId) {
+  if (!roomId) return;
+  if (roomTimers[roomId]) {
     clearTimeout(roomTimers[roomId]);
     delete roomTimers[roomId];
     console.log(`[Timer] Cleared timer for room ${roomId}.`);
   }
+  if (roomMessageCounters[roomId]) {
+    delete roomMessageCounters[roomId];
+    console.log(`[Counter] Cleared message counter for room ${roomId}.`);
+  }
 }
 
-export { analyzeMessage, resetRoomTimer, clearRoomTimer };
+export { analyzeMessage, resetRoomTimer, cleanupRoomState };

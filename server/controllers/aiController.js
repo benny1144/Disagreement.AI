@@ -423,3 +423,63 @@ Keep your response to a single, polite question.`;
     return 'Just checking in. Is there anything else either of you would like to add at this point?';
   }
 }
+
+
+// AI Summarization: neutral summary of each participant's main points (v2.5)
+export async function getAISummary(messageHistory) {
+  try {
+    const history = Array.isArray(messageHistory) ? messageHistory : [];
+    const MAX = Number(process.env.AI_SUMMARY_HISTORY_LIMIT || 40);
+    const sanitize = (v) => (v == null ? '' : String(v)).replace(/\s+/g, ' ').trim();
+    const formatted = history
+      .slice(Math.max(0, history.length - MAX))
+      .map((m) => {
+        const name = sanitize(m?.sender?.name || 'Participant');
+        const txt = sanitize(m?.text || '');
+        return `${name}: ${txt}`;
+      })
+      .filter(Boolean)
+      .join('\n');
+
+    const systemPrompt = `You are an AI Mediator. Your task is to read a conversation transcript and provide a brief, neutral summary of each participant's main points.
+
+- Your summary must be impartial and objective. Do not take sides or inject your own opinions.
+- Structure your response clearly, addressing each person's perspective. For example: "My understanding is that [User A's position]. On the other hand, [User B's position]."
+- Conclude by asking a simple, direct question to confirm your understanding. For example: "Is this summary accurate?"
+- Keep the entire message concise.`;
+
+    const userContent = formatted
+      ? `CONVERSATION TRANSCRIPT (newest last):\n${formatted}\n\nWrite a concise, neutral summary as specified.`
+      : 'Write a concise, neutral summary as specified for an empty or minimal conversation.';
+
+    let content = '';
+    try {
+      const completion = await openai.chat.completions.create({
+        model: process.env.OPENAI_SUMMARY_MODEL || 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userContent },
+        ],
+        temperature: 0.2,
+        max_tokens: 220,
+      });
+      content = (completion?.choices?.[0]?.message?.content || '').trim();
+    } catch (e) {
+      console.error('[AI] getAISummary error:', e?.message || e);
+    }
+
+    if (!content) {
+      // Conservative fallback phrasing following the spec
+      const names = Array.from(new Set(history.map((m) => sanitize(m?.sender?.name)).filter(Boolean)));
+      const a = names[0] || 'one participant';
+      const b = names[1] || 'another participant';
+      content = `My understanding is that ${a} has shared their perspective, and on the other hand, ${b} has offered a different view. Is this summary accurate?`;
+    }
+
+    // Trim whitespace and ensure concise length (soft limit)
+    return content.replace(/\s+/g, ' ').trim();
+  } catch (err) {
+    console.error('getAISummary internal error:', err);
+    return 'My understanding is that each of you has outlined different concerns. Is this summary accurate?';
+  }
+}

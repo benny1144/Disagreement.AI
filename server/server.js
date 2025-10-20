@@ -398,7 +398,7 @@ io.on('connection', (socket) => {
                 const room = io.sockets.adapter.rooms.get(roomId);
                 const numClients = room ? room.size : 0;
                 if (numClients === 0) {
-                    aiAnalysisService.clearRoomTimer(roomId);
+                    aiAnalysisService.cleanupRoomState(roomId);
                 }
             }
         } catch (e) {

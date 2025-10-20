@@ -301,11 +301,13 @@ io.on('connection', (socket) => {
 
             // NEW TRIGGER LOGIC: Proactive AI joins when second human participant arrives
             if (numClients === 2 && !disagreement.hasAiMediatorJoined) {
+                console.log(`[socket] AI intro condition hit: numClients=${numClients}, hasAiMediatorJoined=${Boolean(disagreement.hasAiMediatorJoined)}, room=${roomId}`);
                 console.log(`[socket] AI introduction trigger met for room ${roomId}. Calling getAIClarifyingIntroduction.`);
 
                 // 1. Mark joining to prevent race conditions/duplicates
                 disagreement.hasAiMediatorJoined = true;
                 await disagreement.save();
+                console.log(`[socket] hasAiMediatorJoined flag set and saved for room ${roomId}.`);
 
                 // 2. Call the CORRECT AI service for the introductory message
                 const aiIntroMessageText = await getAIClarifyingIntroduction();

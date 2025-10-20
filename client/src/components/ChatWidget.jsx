@@ -4,6 +4,8 @@ import axios from 'axios'
 import { useChat } from '@/state/ChatContext'
 import { useAuth } from '@/contexts/AuthContext'
 import ProposalMessage from './ProposalMessage.jsx'
+import ChatWidgetHeader from './ChatWidgetHeader.jsx'
+import ChatComposer from './ChatComposer.jsx'
 
 // Determine API and Socket base similar to ChatPage
 const envApi = typeof import.meta !== 'undefined' ? import.meta.env?.VITE_API_URL : undefined
@@ -15,9 +17,30 @@ function TTSButton({ text }) {
   const speak = useCallback(() => {
     try {
       if (!text) return
-      const utter = new SpeechSynthesisUtterance(String(text))
-      window.speechSynthesis.cancel()
-      window.speechSynthesis.speak(utter)
+      // Toggle stop on re-click
+      if (window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel()
+        return
+      }
+      const utterance = new SpeechSynthesisUtterance(String(text))
+      const trySpeakWithPreferredVoice = () => {
+        const voices = window.speechSynthesis.getVoices()
+        const preferredVoice = voices.find(v => /Google|Microsoft|Siri/i.test(v.name)) || voices[0]
+        if (preferredVoice) utterance.voice = preferredVoice
+        window.speechSynthesis.speak(utterance)
+      }
+      const existing = window.speechSynthesis.getVoices()
+      if (!existing || existing.length === 0) {
+        const handler = () => {
+          trySpeakWithPreferredVoice()
+          window.speechSynthesis.removeEventListener('voiceschanged', handler)
+        }
+        window.speechSynthesis.addEventListener('voiceschanged', handler)
+        // Attempt to speak even if voices not yet loaded
+        window.speechSynthesis.speak(utterance)
+      } else {
+        trySpeakWithPreferredVoice()
+      }
     } catch (e) {
       console.warn('TTS not available', e)
     }
@@ -62,7 +85,7 @@ function AutosizeTextarea({ value, onChange, rows = 2, maxRows = 8, ...rest }) {
 
 export default function ChatWidget() {
   const { isChatOpen, activeDisagreementId, readOnly, muteNotifications, closeChat, toggleMute } = useChat()
-  const { token } = useAuth()
+  const { token, user } = useAuth()
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -70,10 +93,22 @@ export default function ChatWidget() {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [uploading, setUploading] = useState(false)
-  const fileInputRef = useRef(null)
   const socketRef = useRef(null)
 
   const isMobile = useMemo(() => typeof window !== 'undefined' && window.innerWidth < 768, [])
+
+  // Derive current user id for sending messages via Socket.IO
+  const currentUserId = useMemo(() => {
+    try {
+      if (user && (user._id || user.id)) return user._id || user.id
+      const stored = localStorage.getItem('user')
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        return parsed?._id || parsed?.id || parsed?.userId || null
+      }
+    } catch {}
+    return null
+  }, [user])
 
   const fetchDisagreement = useCallback(async (id) => {
     if (!id || !token) return
@@ -109,9 +144,9 @@ export default function ChatWidget() {
     })
     socketRef.current = socket
 
-    socket.emit('joinDisagreement', { disagreementId: activeDisagreementId })
+    socket.emit('join_room', { roomId: activeDisagreementId, userName: (user && (user.name || user.email)) || '' })
 
-    socket.on('newMessage', (msg) => {
+    socket.on('receive_message', (msg) => {
       setMessages((prev) => [...prev, msg])
       // Play ding when unmuted and page not focused
       try {
@@ -131,18 +166,24 @@ export default function ChatWidget() {
 
   const sendMessage = async () => {
     const text = input.trim()
-    if (!text || !activeDisagreementId) return
+    if (!text || !activeDisagreementId || !currentUserId) return
     try {
       setInput('')
-      await axios.post(`${API_URL}/disagreements/${activeDisagreementId}/messages`, { text }, {
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      })
+      const sock = socketRef.current
+      if (sock && typeof sock.emit === 'function') {
+        sock.emit('send_message', { roomId: activeDisagreementId, sender: currentUserId, text })
+      } else {
+        // Fallback: optimistic UI update; socket should reconcile when reconnected
+        setMessages((prev) => [
+          ...prev,
+          { _id: Math.random().toString(36).slice(2), sender: { _id: currentUserId, name: 'You' }, text },
+        ])
+      }
     } catch (e) {
-      setError(e?.response?.data?.message || e?.message || 'Failed to send message.')
+      setError(e?.message || 'Failed to send message.')
     }
   }
 
-  const onUploadClick = () => fileInputRef.current?.click()
 
   const onFileChange = async (e) => {
     const file = e?.target?.files?.[0]
@@ -170,7 +211,7 @@ export default function ChatWidget() {
   // Visibility and container classes per spec
   const containerClasses = isMobile
     ? 'fixed inset-0 w-full h-full z-50'
-    : 'fixed bottom-4 right-4 w-[500px] h-[700px] z-50'
+    : 'fixed bottom-4 right-4 w-[571px] h-[800px] z-50'
 
   if (!isChatOpen) return null
 
@@ -178,31 +219,13 @@ export default function ChatWidget() {
     <div className={containerClasses}>
       <div className="bg-white rounded-xl shadow-xl border border-slate-200 flex flex-col w-full h-full overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 bg-slate-50">
-          <div className="min-w-0">
-            <h3 className="text-base font-semibold text-slate-800 truncate" title={title}>{title}</h3>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={toggleMute}
-              className="px-2 py-1 rounded text-slate-600 hover:bg-slate-100"
-              title="Mute Notifications"
-              aria-label="Mute Notifications"
-            >
-              {muteNotifications ? '🔇' : '🔈'}
-            </button>
-            <button
-              type="button"
-              onClick={closeChat}
-              className="px-2 py-1 rounded text-slate-600 hover:bg-slate-100"
-              aria-label="Close"
-              title="Close"
-            >
-              ×
-            </button>
-          </div>
-        </div>
+        <ChatWidgetHeader
+          title={title}
+          participants={Array.isArray(disagreement?.participants) ? disagreement.participants : []}
+          muteNotifications={muteNotifications}
+          onToggleMute={toggleMute}
+          onClose={closeChat}
+        />
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto p-3 space-y-3 bg-white">
@@ -235,39 +258,15 @@ export default function ChatWidget() {
 
         {/* Composer */}
         <div className="border-t border-slate-200 bg-white p-2">
-          <div className="flex items-end gap-2">
-            <button type="button" onClick={onUploadClick} className="px-3 py-2 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700" aria-label="Upload">
-              +
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              className="hidden"
-              onChange={onFileChange}
-              accept="image/*,video/*,audio/*,application/pdf,.doc,.docx"
-              capture="environment"
-            />
-            <div className="flex-1 min-w-0">
-              <AutosizeTextarea
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                rows={2}
-                maxRows={8}
-                className="w-full resize-none outline-none border border-slate-200 rounded-lg px-3 py-2 focus:border-slate-400"
-                placeholder={readOnly ? 'Read-only mode' : 'Type a message…'}
-                disabled={readOnly}
-              />
-            </div>
-            <button
-              type="button"
-              onClick={sendMessage}
-              disabled={readOnly || !input.trim()}
-              className={`px-3 py-2 rounded-md text-white font-semibold ${readOnly || !input.trim() ? 'bg-blue-300 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500'}`}
-            >
-              Send
-            </button>
-          </div>
+          <ChatComposer
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onSend={sendMessage}
+            onFileChange={onFileChange}
+            readOnly={readOnly}
+          />
           {uploading && <div className="text-xs text-slate-500 mt-1">Uploading…</div>}
+          <div className="mt-2 text-[11px] text-slate-500">Dai doesn't provide legally binding advice.</div>
         </div>
       </div>
     </div>

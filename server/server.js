@@ -334,15 +334,14 @@ io.on('connection', (socket) => {
                 io.to(roomId).emit('receive_message', populatedAiMessage);
                 console.log(`[socket] DAI's official introduction sent to room ${roomId}.`);
             } else if (numClients > 2) {
-                console.log(`[socket] Subsequent user join trigger met for room ${roomId}.`);
-                // Try to personalize the welcome using provided payload fields; fall back gracefully
-                const joiningUserName = (
-                    (data && (data.userName || data.username || data.name)) || ''
-                ).toString().trim() || 'there';
-                const welcomeText = `Welcome, ${joiningUserName}. Please take a moment to read the conversation history before commenting.`;
-                // Emit ephemeral system message (not persisted)
-                io.to(roomId).emit('systemMessage', { text: welcomeText });
-                console.log(`[socket] Ephemeral welcome sent to room ${roomId}.`);
+                console.log(`[socket] Subsequent user join. Sending private instructions to socket ${socket.id}.`);
+                try {
+                    const daiIntroText = await getAIClarifyingIntroduction();
+                    // Emit a PRIVATE instruction only to the joining user
+                    socket.emit('privateInstruction', { text: daiIntroText });
+                } catch (e) {
+                    console.error('[socket] Failed to send private instruction:', e?.message || e);
+                }
             }
         } catch (e) {
             console.error('[socket] Error in join_room handler:', e?.message || e);

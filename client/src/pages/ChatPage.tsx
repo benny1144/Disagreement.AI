@@ -6,6 +6,7 @@ import InviteUserModal from '../components/InviteUserModal'
 import InvitationManager from '../components/InvitationManager'
 import ProposalMessage from '../components/ProposalMessage'
 import { useAuth } from '@/contexts/AuthContext'
+import ReactMarkdown from 'react-markdown'
 
 // Derive API base from environment; fallback to same-origin relative /api
 const envApi = typeof import.meta !== 'undefined' ? import.meta.env?.VITE_API_URL : undefined
@@ -51,47 +52,46 @@ export default function ChatPage(): JSX.Element {
   const participantsRef = useRef(null)
   const socketRef = useRef<Socket | null>(null)
   const [ephemeralMessages, setEphemeralMessages] = useState<{ text: string }[]>([])
+  const [privateInstructionMessage, setPrivateInstructionMessage] = useState<Message | null>(null)
 
   const { user, token } = useAuth()
   const currentUserId = user?._id || (user as any)?.id || null
 
-  // Render the special DAI introduction with larger emojis and spaced paragraphs
+  // Render the special DAI introduction using Markdown, with emoji and heading styling
   const renderDAIIntro = (raw: string) => {
     try {
-      const lines = String(raw || '').split(/\r?\n/).map(l => l.trim());
-      const elements: JSX.Element[] = [];
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        if (!line) continue;
-        const m = line.match(/^([1-3])\.\s*(.+)$/);
-        if (m) {
-          let rest = m[2];
-          let emoji = '';
-          ['💯','💬','➕'].forEach(e => {
-            if (!emoji && rest.includes(e)) {
-              emoji = e;
-              rest = rest.replace(e, '').trim();
-            }
-          });
-          elements.push(
-            <div key={`h-${i}`} className="flex items-center gap-2 mt-3">
-              <span className="text-4xl leading-none" aria-hidden>{emoji || '•'}</span>
-              <span className="text-lg font-semibold">{rest}</span>
-            </div>
-          );
-          const next = (lines[i+1] || '').trim();
-          if (next && !/^[1-3]\./.test(next)) {
-            elements.push(<p key={`p-${i}`} className="mb-4">{next}</p>);
-            i++;
-          }
-          continue;
-        }
-        // Default paragraph (no extra margin)
-        elements.push(<p key={`t-${i}`}>{line}</p>);
+      const extractText = (children: any): string => {
+        if (typeof children === 'string') return children
+        if (Array.isArray(children)) return children.map(extractText).join('')
+        if (children && typeof children === 'object' && 'props' in children) return extractText((children as any).props?.children)
+        return ''
       }
-      return <div>{elements}</div>;
+      const EmojiSet = new Set(['💯','💬','➕'])
+      return (
+        <ReactMarkdown
+          components={{
+            p: ({ children }) => {
+              const text = extractText(children).trim()
+              if (EmojiSet.has(text)) {
+                return <p className="mb-1"><span className="text-4xl leading-none" aria-hidden>{text}</span></p>
+              }
+              return <p className="mb-4">{children}</p>
+            },
+            strong: ({ children }) => {
+              const text = extractText(children).trim()
+              if (/^how to interact with me:$/i.test(text)) {
+                return <span className="text-xl font-bold">{text}</span>
+              }
+              return <strong>{children}</strong>
+            },
+            li: ({ children }) => <li className="mb-1">{children}</li>,
+          }}
+        >
+          {raw}
+        </ReactMarkdown>
+      )
     } catch {
-      return <p className="text-lg whitespace-pre-wrap">{String(raw || '')}</p>;
+      return <p className="text-lg whitespace-pre-wrap">{String(raw || '')}</p>
     }
   }
 
@@ -154,8 +154,14 @@ export default function ChatPage(): JSX.Element {
       if (!text) return
       setEphemeralMessages((prev) => [...prev, { text }])
     }
+    const handlePrivateInstruction = (message: any) => {
+      const daiMessageObject: Message = { ...(message || {}), sender: { name: 'DAI' }, isAIMessage: true }
+      setPrivateInstructionMessage(daiMessageObject)
+    }
+
     socket.on('receive_message', handleReceive)
     socket.on('systemMessage', handleSystemMessage)
+    socket.on('privateInstruction', handlePrivateInstruction)
 
     const handleProposalUpdated = (updated: any) => {
       if (!updated || !updated._id) return
@@ -174,6 +180,7 @@ export default function ChatPage(): JSX.Element {
       socket.off('connect', handleConnect)
       socket.off('receive_message', handleReceive)
       socket.off('systemMessage', handleSystemMessage)
+      socket.off('privateInstruction', handlePrivateInstruction)
       socket.off('proposalUpdated', handleProposalUpdated)
       socket.disconnect()
       socketRef.current = null
@@ -366,6 +373,20 @@ export default function ChatPage(): JSX.Element {
                     {m.text}
                   </div>
                 ))}
+
+                {privateInstructionMessage && (
+                  <div className="flex justify-start items-end gap-2">
+                    <div className="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs select-none">AI</div>
+                    <div className="flex flex-col max-w-[75%]">
+                      <span className="text-xs text-slate-500 mb-1 ml-2">DAI</span>
+                      <div className="bg-[#F3F4FF] text-slate-900 px-4 py-2 rounded-2xl shadow-sm">
+                        {typeof privateInstructionMessage.text === 'string' && privateInstructionMessage.text.trim().toLowerCase().startsWith('hello, i am dai.')
+                          ? renderDAIIntro(String(privateInstructionMessage.text))
+                          : <p className="text-lg whitespace-pre-wrap">{privateInstructionMessage?.text}</p>}
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {disagreement.messages.length === 0 ? (
                   <p className="text-slate-500">No messages yet.</p>

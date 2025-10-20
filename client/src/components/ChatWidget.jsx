@@ -59,29 +59,6 @@ function TTSButton({ text }) {
   )
 }
 
-function AutosizeTextarea({ value, onChange, rows = 2, maxRows = 8, ...rest }) {
-  const ref = useRef(null)
-
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    el.style.height = 'auto'
-    const lineHeight = parseInt(window.getComputedStyle(el).lineHeight || '20', 10)
-    const maxHeight = lineHeight * maxRows
-    el.style.height = Math.min(el.scrollHeight, maxHeight) + 'px'
-    el.style.overflowY = el.scrollHeight > maxHeight ? 'auto' : 'hidden'
-  }, [value, maxRows])
-
-  return (
-    <textarea
-      ref={ref}
-      rows={rows}
-      value={value}
-      onChange={onChange}
-      {...rest}
-    />
-  )
-}
 
 export default function ChatWidget() {
   const { isChatOpen, activeDisagreementId, readOnly, muteNotifications, closeChat, toggleMute } = useChat()
@@ -94,6 +71,7 @@ export default function ChatWidget() {
   const [input, setInput] = useState('')
   const [uploading, setUploading] = useState(false)
   const socketRef = useRef(null)
+  const messagesEndRef = useRef(null)
 
   const isMobile = useMemo(() => typeof window !== 'undefined' && window.innerWidth < 768, [])
 
@@ -206,6 +184,14 @@ export default function ChatWidget() {
     }
   }
 
+  useEffect(() => {
+    try {
+      if (messagesEndRef && messagesEndRef.current) {
+        messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
+      }
+    } catch {}
+  }, [messages])
+
   const title = disagreement?.title || 'Conversation'
 
   // Visibility and container classes per spec
@@ -234,25 +220,47 @@ export default function ChatWidget() {
           ) : error ? (
             <div className="text-center text-red-600 py-8">{error}</div>
           ) : (
-            messages.map((m) => (
-              m?.isProposal ? (
-                <ProposalMessage
-                  key={m._id || Math.random()}
-                  message={m}
-                  disagreementId={activeDisagreementId}
-                  participantCount={Array.isArray(disagreement?.participants) ? disagreement.participants.length : 0}
-                />
-              ) : (
-                <div key={m._id || Math.random()} className="flex flex-col group">
-                  <div className={`self-${m?.sender?.isSelf ? 'end' : 'start'} max-w-[85%] rounded-2xl px-3 py-2 shadow-sm border ${m?.sender?.isSelf ? 'bg-blue-50 border-blue-100' : 'bg-slate-50 border-slate-200'}`}>
-                    <div className="text-sm text-slate-900 whitespace-pre-wrap">{m.text}</div>
+            <>
+              {messages.map((m) => {
+                const senderId = m?.sender?._id || m?.sender
+                const senderName = (m?.sender?.name) || (m?.isAIMessage ? 'Dai' : 'Participant')
+                const isAI = Boolean(m?.isAIMessage) || String(senderName).toLowerCase() === 'dai'
+                const isMe = currentUserId && senderId && String(senderId) === String(currentUserId)
+                if (m?.isProposal) {
+                  return (
+                    <ProposalMessage
+                      key={m._id || Math.random()}
+                      message={m}
+                      disagreementId={activeDisagreementId}
+                      participantCount={Array.isArray(disagreement?.participants) ? disagreement.participants.length : 0}
+                    />
+                  )
+                }
+                const alignClass = isMe ? 'justify-end' : 'justify-start'
+                const bubbleClasses = isMe
+                  ? 'bg-blue-500 text-white'
+                  : (isAI ? 'bg-slate-100 text-slate-900' : 'bg-gray-200 text-slate-900')
+                return (
+                  <div key={m._id || Math.random()} className={`flex ${alignClass} group`}>
+                    <div className={`max-w-[85%] rounded-2xl px-3 py-2 shadow-sm ${bubbleClasses}`}>
+                      <div className="text-[11px] mb-0.5 opacity-80 flex items-center gap-1">
+                        <span className="font-medium">{isMe ? 'You' : senderName}</span>
+                        {isAI && (
+                          <span className="inline-flex items-center justify-center text-[10px] leading-none px-1.5 py-0.5 rounded-full bg-sky-100 text-sky-700 border border-sky-200">
+                            AI
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-sm whitespace-pre-wrap">{m.text}</div>
+                      <div className="mt-1">
+                        <TTSButton text={m.text} />
+                      </div>
+                    </div>
                   </div>
-                  <div className="mt-1">
-                    <TTSButton text={m.text} />
-                  </div>
-                </div>
-              )
-            ))
+                )
+              })}
+              <div ref={messagesEndRef} />
+            </>
           )}
         </div>
 

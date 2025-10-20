@@ -67,7 +67,9 @@ export default function ChatComposer({
           aria-label="Send message"
           title={disabled ? 'Enter message to send' : 'Send message'}
         >
-          →
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+            <path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2z" />
+          </svg>
         </button>
       </div>
       {/* Hidden file input to enable camera/gallery/files on mobile */}

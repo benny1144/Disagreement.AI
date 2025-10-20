@@ -228,7 +228,12 @@ Do not be overly sensitive. The goal is to prevent abuse, not to police tone. On
 
 // New AI service: Clarifying Introduction for AI Mediator
 export async function getAIClarifyingIntroduction(description) {
+  console.log('[DIAGNOSTIC] getAIClarifyingIntroduction has been called.');
   const desc = (description || '').toString().trim();
+  if (String(process.env.DAI_INTRO_DIAGNOSTIC || '').toLowerCase() === 'true') {
+    console.log('[DIAGNOSTIC] Bypassing OpenAI and returning hardcoded test intro.');
+    return "TEST: The correct getAIClarifyingIntroduction function was called successfully.";
+  }
   const systemPrompt = `Hello, I am DAI. I am here to help you find a clear, mutual agreement.
 
 My understanding is the core issue is: **[DAI summary will be inserted here]**.

@@ -248,6 +248,7 @@ export default function ChatPage(): JSX.Element {
   const participantsList = Array.isArray((disagreement as any)?.participants) ? (disagreement as any).participants : []
   const creatorUserId = participantsList.length > 0 ? (participantsList[0]?.user?._id || participantsList[0]?.user) : null
   const isCreator = currentUserId && creatorUserId ? String(currentUserId) === String(creatorUserId) : false
+  const activeParticipantCount = Array.isArray(participantsList) ? participantsList.filter((p: any) => (p?.status || 'active') === 'active').length : 0
 
   return (
     <div className="min-h-screen bg-white font-sans px-4 md:px-8 py-4">
@@ -372,7 +373,7 @@ export default function ChatPage(): JSX.Element {
                 ) : (
                   disagreement.messages.map((msg, idx) => {
                     if ((msg as any)?.isProposal) {
-                      return (<ProposalMessage key={msg._id || idx} message={msg as any} disagreementId={String(id)} />)
+                      return (<ProposalMessage key={msg._id || idx} message={msg as any} disagreementId={String(id)} participantCount={activeParticipantCount} isCreator={isCreator} />)
                     }
                     const senderId = typeof msg.sender === 'object' ? (msg.sender?._id || (msg as any).sender?.id) : (msg as any).sender
                     const isMine = currentUserId && senderId && String(senderId) === String(currentUserId)

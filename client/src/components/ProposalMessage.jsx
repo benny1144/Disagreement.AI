@@ -8,7 +8,7 @@ import axios from 'axios'
  * - message: { _id?: string, text: string, sender?: { name?: string }, isProposal?: boolean, agreements?: Array<{ user: any, agreedAt?: string }> }
  * - disagreementId: string
  */
-export default function ProposalMessage({ message, disagreementId }) {
+export default function ProposalMessage({ message, disagreementId, participantCount = 0, isCreator = false }) {
   const text = (message?.text || '').toString()
   const senderName = (message?.sender && message.sender.name) ? message.sender.name : 'DAI'
 
@@ -36,6 +36,11 @@ export default function ProposalMessage({ message, disagreementId }) {
   const [agreeDisabled, setAgreeDisabled] = useState(Boolean(alreadyAgreed))
   const [disagreeDisabled, setDisagreeDisabled] = useState(false)
   const [agreeError, setAgreeError] = useState('')
+  const [finalizeDisabled, setFinalizeDisabled] = useState(false)
+  const [finalizeError, setFinalizeError] = useState('')
+
+  const agreedCount = useMemo(() => (Array.isArray(message?.agreements) ? message.agreements.length : 0), [message])
+  const everyoneAgreed = participantCount > 0 && agreedCount >= participantCount
 
   const handleAgree = async () => {
     if (!message?._id || !disagreementId) return
@@ -61,6 +66,21 @@ export default function ProposalMessage({ message, disagreementId }) {
   const handleDisagree = () => {
     console.log('User disagreed with proposal', { messageId: message?._id })
     setDisagreeDisabled(true)
+  }
+
+  const handleFinalize = async () => {
+    if (!disagreementId) return
+    setFinalizeError('')
+    setFinalizeDisabled(true)
+    let token
+    try { token = JSON.parse(localStorage.getItem('user'))?.token } catch { token = undefined }
+    try {
+      await axios.post(`${API_URL}/disagreements/${disagreementId}/finalize`, {}, token ? { headers: { Authorization: `Bearer ${token}` } } : undefined)
+      // No local state change here; page header and Download button rely on ChatPage state.
+    } catch (err) {
+      setFinalizeError(err?.response?.data?.message || err?.message || 'Failed to finalize agreement.')
+      setFinalizeDisabled(false)
+    }
   }
 
   const agreedNames = useMemo(() => {
@@ -93,32 +113,53 @@ export default function ProposalMessage({ message, disagreementId }) {
               {text}
             </p>
             <div className="mt-3 flex items-center gap-2">
-              <button
-                type="button"
-                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-semibold shadow-sm ${agreeDisabled ? 'bg-emerald-300 text-white cursor-not-allowed' : 'bg-emerald-600 text-white hover:bg-emerald-500'}`}
-                aria-label="I agree with this proposal"
-                onClick={handleAgree}
-                disabled={agreeDisabled}
-              >
-                I Agree
-              </button>
-              <button
-                type="button"
-                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-md border border-emerald-300 text-emerald-800 bg-white text-sm font-semibold ${disagreeDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-emerald-50'}`}
-                aria-label="I disagree with this proposal"
-                onClick={handleDisagree}
-                disabled={disagreeDisabled}
-              >
-                I Disagree
-              </button>
+              {everyoneAgreed ? (
+                <button
+                  type="button"
+                  className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-semibold shadow-sm ${finalizeDisabled ? 'bg-emerald-300 text-white cursor-not-allowed' : 'bg-emerald-600 text-white hover:bg-emerald-500'}`}
+                  aria-label="Finalize Agreement"
+                  onClick={handleFinalize}
+                  disabled={finalizeDisabled || !isCreator}
+                  title={!isCreator ? 'Only the creator can finalize the agreement.' : ''}
+                >
+                  {finalizeDisabled ? 'Finalizing…' : 'Finalize Agreement'}
+                </button>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-semibold shadow-sm ${agreeDisabled ? 'bg-emerald-300 text-white cursor-not-allowed' : 'bg-emerald-600 text-white hover:bg-emerald-500'}`}
+                    aria-label="I agree with this proposal"
+                    onClick={handleAgree}
+                    disabled={agreeDisabled}
+                  >
+                    I Agree
+                  </button>
+                  <button
+                    type="button"
+                    className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-md border border-emerald-300 text-emerald-800 bg-white text-sm font-semibold ${disagreeDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-emerald-50'}`}
+                    aria-label="I disagree with this proposal"
+                    onClick={handleDisagree}
+                    disabled={disagreeDisabled}
+                  >
+                    I Disagree
+                  </button>
+                </>
+              )}
             </div>
-            {agreeError && (
+            {agreeError && !everyoneAgreed && (
               <p className="mt-2 text-sm text-red-600">{agreeError}</p>
+            )}
+            {finalizeError && everyoneAgreed && (
+              <p className="mt-2 text-sm text-red-600">{finalizeError}</p>
             )}
             {agreedNames.length > 0 && (
               <div className="mt-3 text-sm text-emerald-900">
                 <span className="font-semibold">Agreed:</span>{' '}
                 <span>{agreedNames.join(', ')}</span>
+                {participantCount > 0 && (
+                  <span className="ml-2 text-emerald-700">({agreedCount}/{participantCount})</span>
+                )}
               </div>
             )}
           </div>

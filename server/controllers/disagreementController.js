@@ -502,7 +502,9 @@ const denyInvitation = asyncHandler(async (req, res) => {
 // @access  Private (creator only)
 const finalizeAgreement = asyncHandler(async (req, res) => {
     const { id } = req.params
-    const disagreement = await Disagreement.findById(id).populate('participants.user', 'email name')
+    const disagreement = await Disagreement.findById(id)
+            .populate('participants.user', 'email name')
+            .populate('messages.sender', 'name')
     if (!disagreement) {
         res.status(404)
         throw new Error('Disagreement not found')
@@ -513,8 +515,11 @@ const finalizeAgreement = asyncHandler(async (req, res) => {
     }
 
     const finalText = (req.body?.finalText || '').toString().trim() || disagreement.resolution || `Final agreement for "${disagreement.title}".`
+    const now = new Date()
     disagreement.resolution = finalText
-    disagreement.archivedAt = new Date()
+    disagreement.archivedAt = now
+    disagreement.status = 'resolved'
+    disagreement.resolvedAt = now
     await disagreement.save()
 
     let pdfBuffer
@@ -547,6 +552,7 @@ const finalizeAgreement = asyncHandler(async (req, res) => {
 const downloadAgreement = asyncHandler(async (req, res) => {
     const { id } = req.params
     const disagreement = await Disagreement.findById(id)
+        .populate('messages.sender', 'name')
     if (!disagreement) {
         res.status(404)
         throw new Error('Disagreement not found')

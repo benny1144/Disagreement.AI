@@ -82,6 +82,9 @@ const disagreementSchema = mongoose.Schema({
         type: Boolean,
         default: false,
     },
+    // Agreement Engine (v4.0): track resolution status
+    status: { type: String, default: 'open' }, // 'open' | 'resolved'
+    resolvedAt: { type: Date },
     resolution: {
         type: String,
     },

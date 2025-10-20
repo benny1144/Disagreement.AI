@@ -301,15 +301,14 @@ io.on('connection', (socket) => {
 
             // NEW TRIGGER LOGIC: Proactive AI joins when second human participant arrives
             if (numClients === 2 && !disagreement.hasAiMediatorJoined) {
-                console.log(`[socket] AI Mediator activation condition met for room ${roomId}.`);
+                console.log(`[socket] AI introduction trigger met for room ${roomId}. Calling getAIClarifyingIntroduction.`);
 
                 // 1. Mark joining to prevent race conditions/duplicates
                 disagreement.hasAiMediatorJoined = true;
                 await disagreement.save();
 
-                // 2. Call the AI service for the introductory message
-                console.log('[AI Trigger] Activating DAI. Calling getAIClarifyingIntroduction...');
-                const aiIntroMessage = await getAIClarifyingIntroduction(disagreement.description);
+                // 2. Call the CORRECT AI service for the introductory message
+                const aiIntroMessageText = await getAIClarifyingIntroduction(disagreement.description);
 
                 // 3-4. Save the AI's message to the embedded messages array
                 const sender = process.env.AI_MEDIATOR_USER_ID;
@@ -317,7 +316,7 @@ io.on('connection', (socket) => {
                     console.warn('[socket] AI_MEDIATOR_USER_ID not set; skipping AI intro message broadcast.');
                     return;
                 }
-                disagreement.messages.push({ sender, text: aiIntroMessage, isAIMessage: true });
+                disagreement.messages.push({ sender, text: aiIntroMessageText, isAIMessage: true });
                 await disagreement.save();
 
                 // 5. Broadcast the AI's message to the room with populated sender info
@@ -329,11 +328,11 @@ io.on('connection', (socket) => {
                 const populatedAiMessage = {
                     _id: saved?._id,
                     sender: aiUserDoc ? { _id: aiUserDoc._id, name: aiUserDoc.name } : { _id: sender, name: 'DAI' },
-                    text: aiIntroMessage,
+                    text: aiIntroMessageText,
                     isAIMessage: true
                 };
                 io.to(roomId).emit('receive_message', populatedAiMessage);
-                console.log(`[socket] AI Mediator message sent to room ${roomId}.`);
+                console.log(`[socket] DAI's official introduction sent to room ${roomId}.`);
             } else if (numClients > 2) {
                 console.log(`[socket] Subsequent user join trigger met for room ${roomId}.`);
                 // Try to personalize the welcome using provided payload fields; fall back gracefully

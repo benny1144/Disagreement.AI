@@ -10,7 +10,7 @@ const API_URL = API_BASE ? `${API_BASE}/api` : '/api'
 
 export default function UserAccountPage() {
   const navigate = useNavigate()
-  const { user, token, logout } = useAuth()
+  const { user, token, logout, setUser } = useAuth()
 
   // Change Password form state
   const [currentPassword, setCurrentPassword] = useState('')
@@ -19,6 +19,12 @@ export default function UserAccountPage() {
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
   const [saveSuccess, setSaveSuccess] = useState('')
+
+  // Profile name state
+  const [profileName, setProfileName] = useState(user?.name || '')
+  const [profileSaving, setProfileSaving] = useState(false)
+  const [profileError, setProfileError] = useState('')
+  const [profileSuccess, setProfileSuccess] = useState('')
 
   // Danger Zone modal state
   const [isDeleteOpen, setDeleteOpen] = useState(false)
@@ -66,6 +72,39 @@ export default function UserAccountPage() {
     }
   }
 
+  const handleProfileSave = async (e) => {
+    e.preventDefault()
+    setProfileError('')
+    setProfileSuccess('')
+    const name = (profileName || '').trim()
+    if (!name) {
+      setProfileError('Name is required')
+      return
+    }
+    if (!token) {
+      setProfileError('Not authenticated')
+      return
+    }
+    try {
+      setProfileSaving(true)
+      const res = await axios.put(
+        `${API_URL}/users/me`,
+        { name },
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      const updated = res?.data
+      setProfileSuccess('Name updated successfully')
+      const newUser = { ...(user || {}), name: updated?.name || name }
+      try { localStorage.setItem('user', JSON.stringify(newUser)) } catch (_) {}
+      setUser(newUser)
+    } catch (err) {
+      const msg = err?.response?.data?.message || err?.message || 'Failed to update profile'
+      setProfileError(msg)
+    } finally {
+      setProfileSaving(false)
+    }
+  }
+
   const handleConfirmDelete = async () => {
     if (!canConfirmDelete || !token) return
     try {
@@ -98,13 +137,25 @@ export default function UserAccountPage() {
             <h2 className="text-xl font-bold text-slate-800 mb-3">Profile Information</h2>
             <div className="grid grid-cols-1 gap-4">
               <div>
-                <label className="block text-slate-600 mb-1 font-semibold">Name</label>
-                <input
-                  type="text"
-                  value={user?.name || ''}
-                  readOnly
-                  className="w-full rounded-md border border-slate-300 bg-slate-50 px-3 py-2 text-lg text-slate-700"
-                />
+                <label className="block text-slate-600 mb-1 font-semibold">First & Last Name</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={profileName}
+                    onChange={(e) => setProfileName(e.target.value)}
+                    className="w-full rounded-md border border-slate-300 px-3 py-2 text-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleProfileSave}
+                    disabled={profileSaving}
+                    className={`px-4 py-2 rounded-md font-semibold text-white shadow-sm ${profileSaving ? 'bg-blue-300 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500'}`}
+                  >
+                    {profileSaving ? 'Saving…' : 'Save'}
+                  </button>
+                </div>
+                {profileError && <p className="mt-1 text-sm text-red-600">{profileError}</p>}
+                {profileSuccess && <p className="mt-1 text-sm text-green-600">{profileSuccess}</p>}
               </div>
               <div>
                 <label className="block text-slate-600 mb-1 font-semibold">Email</label>

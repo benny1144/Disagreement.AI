@@ -151,5 +151,30 @@ export {
     loginUser,
     getMe,
     changePassword,
-    deleteMe
+    deleteMe,
+    updateProfile
 };
+// @desc    Update current user's profile (name)
+// @route   PUT /api/users/me
+// @access  Private
+const updateProfile = asyncHandler(async (req, res) => {
+    const { name } = req.body || {};
+    if (!name || String(name).trim() === '') {
+        res.status(400);
+        throw new Error('Name is required');
+    }
+
+    const updated = await User.findByIdAndUpdate(
+        req.user.id,
+        { name: String(name).trim() },
+        { new: true, runValidators: true, select: '_id name email' }
+    );
+
+    if (!updated) {
+        res.status(404);
+        throw new Error('User not found');
+    }
+
+    res.status(200).json({ _id: updated._id, name: updated.name, email: updated.email });
+});
+

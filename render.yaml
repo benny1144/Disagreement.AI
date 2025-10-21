@@ -10,5 +10,5 @@ services:
     envVars:
       - key: NODE_VERSION
         value: 18
-      - key: AI_MEDIATOR_USER_ID
+      - key: CLARITY_USER_ID
         fromSecret: ai_mediator_user_id

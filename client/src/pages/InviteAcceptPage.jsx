@@ -173,7 +173,7 @@ export default function InviteAcceptPage() {
                   {!isLoggedIn && (
                     <p className="text-sm text-slate-600">
                       New here?{' '}
-                      <Link className="text-blue-600 hover:underline" to={{ pathname: '/register' }}>Create an account</Link>
+                      <Link className="text-blue-600 hover:underline" to={{ pathname: '/signup' }}>Create an account</Link>
                     </p>
                   )}
                 </div>

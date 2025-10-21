@@ -171,7 +171,16 @@ export default function DashboardPage(): JSX.Element {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 auto-rows-[minmax(140px,auto)] gap-4 md:gap-6">
             {/* Active Disagreements (Bento 2x2) */}
             <div className="lg:col-span-2 lg:row-span-2 bg-white rounded-2xl shadow p-6">
-              <h2 className="text-xl font-bold text-slate-800 mb-4">Active Disagreements</h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-slate-800">Active Disagreements</h2>
+                <button
+                  type="button"
+                  onClick={onOpen}
+                  className="inline-flex items-center rounded-md bg-blue-600 text-white font-semibold shadow-sm hover:bg-blue-500 px-3 py-1.5 text-sm md:text-base"
+                >
+                  + Add New
+                </button>
+              </div>
               {disagreements.length === 0 ? (
                 <div className="flex flex-col items-center justify-center text-slate-600 py-10">
                   <div className="text-5xl" aria-hidden>📭</div>
@@ -255,14 +264,6 @@ export default function DashboardPage(): JSX.Element {
               )}
             </div>
 
-            {/* CTA Card (Bento 1x1) */}
-            <div className="lg:col-span-1 lg:row-span-1 bg-white rounded-2xl shadow p-6 hover:shadow-xl transition-all cursor-pointer" onClick={onOpen}>
-              <div className="flex flex-col gap-2">
-                <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center text-2xl" aria-hidden>+</div>
-                <h3 className="text-xl font-bold text-slate-800">Add New Disagreement</h3>
-                <p className="text-slate-600">Begin the agreement process.</p>
-              </div>
-            </div>
 
             {/* My Stats (Bento 1x1) */}
             <div className="lg:col-span-1 lg:row-span-1 bg-white rounded-2xl shadow p-6">

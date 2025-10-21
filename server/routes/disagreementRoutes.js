@@ -54,6 +54,11 @@ import { finalizeAgreement, downloadAgreement } from '../controllers/disagreemen
 router.post('/:id/finalize', protect, finalizeAgreement);
 router.get('/:id/agreement', protect, downloadAgreement);
 
+// Agreement workflow endpoints (v5.1)
+import { agreeToProposal, disagreeWithProposal } from '../controllers/agreementController.js';
+router.post('/:id/agree', protect, agreeToProposal);
+router.post('/:id/disagree', protect, disagreeWithProposal);
+
 // --- Proposal Voting Endpoint (v3.2) ---
 router.post('/:disagreementId/proposals/:messageId/vote', protect, async (req, res) => {
   try {

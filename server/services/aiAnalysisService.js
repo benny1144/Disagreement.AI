@@ -51,11 +51,34 @@ async function triggerClarityAI(disagreementId, io) {
     const aiServiceUrl = `${process.env.CLARITY_AI_SERVICE_URL}/mediate`;
     const response = await axios.post(aiServiceUrl, payload);
 
-    const { response_message, updated_context } = (response?.data) || {};
+    const { response_message, updated_context, is_formal_proposal } = (response?.data) || {};
 
     if (!response_message) {
       console.log('[AI Trigger] AI returned a valid response but no message. No action taken.');
       return;
+    }
+
+    // Handle formal proposal path
+    if (is_formal_proposal === true) {
+      // Prepare disagreement for agreement workflow
+      disagreement.status = 'awaiting_agreement';
+      disagreement.isFormalProposalActive = true;
+      disagreement.finalAgreementText = response_message;
+      // Reset participant agreements for fresh vote
+      if (Array.isArray(disagreement.participants)) {
+        disagreement.participants.forEach(p => { p.hasAgreed = false; });
+      }
+      // Update the AI context/memory
+      disagreement.aiContext = (updated_context !== undefined) ? updated_context : (disagreement.aiContext ?? null);
+      await disagreement.save();
+
+      // Emit formal proposal event to clients
+      try {
+        io.to(disagreementId).emit('formal_proposal_received', disagreement);
+      } catch (e) {
+        try { console.error('[socket] formal_proposal_received emit error:', e?.message || e); } catch (_) {}
+      }
+      return; // Do not post the proposal as a normal chat message
     }
 
     // 6. Save the AI's response to the database (embedded message)

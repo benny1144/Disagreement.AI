@@ -7,6 +7,62 @@ import InvitationManager from '../components/InvitationManager'
 import ProposalMessage from '../components/ProposalMessage'
 import { useAuth } from '@/contexts/AuthContext'
 
+function AgreementButtons({ id, token, disagreement, currentUserId, onUpdated }: { id: string, token?: string, disagreement: any, currentUserId?: string | null, onUpdated: (updated: any) => void }) {
+  const [submitting, setSubmitting] = useState<'agree'|'disagree'|null>(null)
+  const myParticipant = Array.isArray(disagreement?.participants) ? disagreement.participants.find((p: any) => {
+    const pid = (typeof p?.user === 'object') ? (p?.user?._id || p?.user?.id) : p?.user
+    return currentUserId && pid && String(pid) === String(currentUserId)
+  }) : null
+  const alreadyAgreed = Boolean(myParticipant?.hasAgreed)
+
+  const handleAgree = async () => {
+    if (!id || !token) return
+    try {
+      setSubmitting('agree')
+      const res = await axios.post(`${API_URL}/disagreements/${id}/agree`, {}, { headers: { Authorization: `Bearer ${token}` } })
+      if (res?.data) onUpdated(res.data)
+    } catch (e: any) {
+      const msg = e?.response?.data?.message || e?.message || 'Failed to record agreement.'
+      alert(msg)
+    } finally {
+      setSubmitting(null)
+    }
+  }
+
+  const handleDisagree = async () => {
+    if (!id || !token) return
+    try {
+      setSubmitting('disagree')
+      const res = await axios.post(`${API_URL}/disagreements/${id}/disagree`, {}, { headers: { Authorization: `Bearer ${token}` } })
+      if (res?.data) onUpdated(res.data)
+    } catch (e: any) {
+      const msg = e?.response?.data?.message || e?.message || 'Failed to submit disagreement.'
+      alert(msg)
+    } finally {
+      setSubmitting(null)
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <button
+        onClick={handleAgree}
+        disabled={submitting !== null || alreadyAgreed}
+        className={`inline-flex items-center rounded-md font-semibold shadow-sm px-4 py-2 text-sm ${submitting === 'agree' || alreadyAgreed ? 'bg-emerald-300 text-white cursor-not-allowed' : 'bg-emerald-600 text-white hover:bg-emerald-500'}`}
+      >
+        {submitting === 'agree' ? 'Submitting…' : (alreadyAgreed ? 'Agreed' : 'I Agree')}
+      </button>
+      <button
+        onClick={handleDisagree}
+        disabled={submitting !== null}
+        className={`inline-flex items-center rounded-md font-semibold shadow-sm px-4 py-2 text-sm ${submitting === 'disagree' ? 'bg-rose-300 text-white cursor-not-allowed' : 'bg-rose-600 text-white hover:bg-rose-500'}`}
+      >
+        {submitting === 'disagree' ? 'Submitting…' : 'I Disagree'}
+      </button>
+    </div>
+  )
+}
+
 // Derive API base from environment; fallback to same-origin relative /api
 const envApi = typeof import.meta !== 'undefined' ? import.meta.env?.VITE_API_URL : undefined
 const API_BASE = envApi && String(envApi).trim() !== '' ? String(envApi).replace(/\/$/, '') : ''
@@ -25,6 +81,7 @@ interface Message {
 interface Participant {
   user?: any
   status?: 'active' | 'pending' | string
+  hasAgreed?: boolean
 }
 
 interface Disagreement {
@@ -33,6 +90,9 @@ interface Disagreement {
   publicInviteToken?: { token?: string; enabled?: boolean }
   participants?: Participant[]
   archivedAt?: string | Date | null
+  status?: 'active' | 'awaiting_agreement' | 'resolved' | 'closed'
+  finalAgreementText?: string | null
+  isFormalProposalActive?: boolean
 }
 
 export default function ChatPage(): JSX.Element {
@@ -170,11 +230,28 @@ export default function ChatPage(): JSX.Element {
     }
     socket.on('proposalUpdated', handleProposalUpdated)
 
+    // Agreement workflow listeners
+    const handleFormalProposal = (data: any) => {
+      if (data && typeof data === 'object') setDisagreement(data)
+    }
+    const handleAgreementStatus = (participants: any[]) => {
+      setDisagreement((prev) => ({ ...prev, participants: Array.isArray(participants) ? participants : (prev as any).participants }))
+    }
+    const handleCaseResolved = (updated: any) => {
+      if (updated && typeof updated === 'object') setDisagreement(updated)
+    }
+    socket.on('formal_proposal_received', handleFormalProposal)
+    socket.on('agreement_status_update', handleAgreementStatus)
+    socket.on('case_resolved', handleCaseResolved)
+
     return () => {
       socket.off('connect', handleConnect)
       socket.off('receive_message', handleReceive)
       socket.off('systemMessage', handleSystemMessage)
       socket.off('proposalUpdated', handleProposalUpdated)
+      socket.off('formal_proposal_received', handleFormalProposal)
+      socket.off('agreement_status_update', handleAgreementStatus)
+      socket.off('case_resolved', handleCaseResolved)
       socket.disconnect()
       socketRef.current = null
     }
@@ -402,46 +479,84 @@ export default function ChatPage(): JSX.Element {
                 )}
               </div>
 
-              {/* Composer */}
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault()
-                  handleSendMessage()
-                }}
-                className="mt-2 px-4 md:px-0 pb-4 md:pb-0 flex items-center gap-2"
-              >
-                <div className="relative group" ref={uploadRef}>
-                  <button
-                    type="button"
-                    onClick={() => setShowUpload(!showUpload)}
-                    className="p-2 rounded-full hover:bg-slate-100"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6 text-slate-500"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>
-                  </button>
-                  <div className="absolute bottom-full mb-2 hidden group-hover:block bg-slate-800 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
-                    Add Files
+              {/* Agreement Workflow: Resolved message or Agreement Panel or Composer */}
+              {((disagreement as any)?.status === 'resolved') ? (
+                <div className="mt-2 px-4 md:px-0 pb-4 md:pb-0">
+                  <div className="w-full rounded-lg bg-emerald-50 border border-emerald-200 p-4 text-emerald-800">
+                    <div className="font-semibold text-lg">Agreement Reached! This case is now resolved.</div>
+                    <div className="text-sm text-emerald-700 mt-1">The conversation has been closed.</div>
                   </div>
-                  {showUpload && (
-                    <div className="absolute bottom-full mb-2 bg-white border border-slate-200 rounded-lg shadow-lg p-2 flex items-center gap-2 whitespace-nowrap">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-slate-600"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.59a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-                      <span className="font-semibold text-slate-700">Upload files</span>
-                    </div>
-                  )}
                 </div>
-                <input
-                  className="flex-1 rounded-md border border-slate-300 px-3 py-2 text-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Type your message..."
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                />
-                <button
-                  type="submit"
-                  className="p-3 rounded-full bg-blue-600 text-white shadow-sm hover:bg-blue-500"
-                  aria-label="Send message"
+              ) : ((disagreement as any)?.isFormalProposalActive) ? (
+                <div className="mt-2 px-4 md:px-0 pb-4 md:pb-0">
+                  <div className="w-full rounded-lg bg-indigo-50 border border-indigo-200 p-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-xl font-bold text-indigo-800">Proposal for Agreement</h3>
+                    </div>
+                    <div className="mt-3 bg-white rounded-md border border-indigo-100 p-3">
+                      <p className="whitespace-pre-wrap text-slate-800">{(disagreement as any)?.finalAgreementText || 'A proposal has been submitted.'}</p>
+                    </div>
+                    <div className="mt-3">
+                      <p className="text-sm font-semibold text-indigo-700">Agreement Status</p>
+                      <ul className="mt-1 space-y-1">
+                        {Array.isArray((disagreement as any)?.participants) && (disagreement as any).participants.map((p: any, i: number) => {
+                          const name = p?.user?.name || p?.user?.email || 'Participant'
+                          const agreed = Boolean(p?.hasAgreed)
+                          return (
+                            <li key={i} className="flex items-center gap-2 text-sm">
+                              <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-white ${agreed ? 'bg-emerald-500' : 'bg-slate-300'}`}>{agreed ? '✓' : '•'}</span>
+                              <span className="text-slate-700">{name} {agreed ? '(Agreed)' : '(Pending)'}</span>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    </div>
+                    <div className="mt-4 flex items-center gap-2">
+                      <AgreementButtons id={String(id)} token={token} disagreement={disagreement as any} currentUserId={currentUserId} onUpdated={(updated: any) => setDisagreement(updated)} />
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault()
+                    handleSendMessage()
+                  }}
+                  className="mt-2 px-4 md:px-0 pb-4 md:pb-0 flex items-center gap-2"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><line x1="22" x2="11" y1="2" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                </button>
-              </form>
+                  <div className="relative group" ref={uploadRef}>
+                    <button
+                      type="button"
+                      onClick={() => setShowUpload(!showUpload)}
+                      className="p-2 rounded-full hover:bg-slate-100"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6 text-slate-500"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>
+                    </button>
+                    <div className="absolute bottom-full mb-2 hidden group-hover:block bg-slate-800 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
+                      Add Files
+                    </div>
+                    {showUpload && (
+                      <div className="absolute bottom-full mb-2 bg-white border border-slate-200 rounded-lg shadow-lg p-2 flex items-center gap-2 whitespace-nowrap">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-slate-600"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.59a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                        <span className="font-semibold text-slate-700">Upload files</span>
+                      </div>
+                    )}
+                  </div>
+                  <input
+                    className="flex-1 rounded-md border border-slate-300 px-3 py-2 text-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Type your message..."
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                  />
+                  <button
+                    type="submit"
+                    className="p-3 rounded-full bg-blue-600 text-white shadow-sm hover:bg-blue-500"
+                    aria-label="Send message"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><line x1="22" x2="11" y1="2" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                  </button>
+                </form>
+              )}
 
               {/* AI legal disclaimer placed below the composer */}
               <div className="px-4 md:px-0 pt-2">

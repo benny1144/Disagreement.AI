@@ -23,7 +23,8 @@ const participantSchema = mongoose.Schema({
         required: true,
         enum: ['active', 'pending'], // 'active' can see chat, 'pending' is waiting for approval
         default: 'pending'
-    }
+    },
+    hasAgreed: { type: Boolean, default: false }
 }, { _id: false });
 
 // A sub-document for direct, trusted email invitations
@@ -87,8 +88,10 @@ const disagreementSchema = mongoose.Schema({
         type: Boolean,
         default: false,
     },
-    // Agreement Engine (v4.0): track resolution status
-    status: { type: String, default: 'open' }, // 'open' | 'resolved'
+    // Agreement Engine (v5.1): track lifecycle and formal proposals
+    status: { type: String, enum: ['active', 'awaiting_agreement', 'resolved', 'closed'], default: 'active' },
+    finalAgreementText: { type: String, default: null },
+    isFormalProposalActive: { type: Boolean, default: false },
     resolvedAt: { type: Date },
     resolution: {
         type: String,
@@ -109,6 +112,10 @@ disagreementSchema.pre('validate', function(next) {
         if (this.directInvites.length === 0) {
             this.directInvites = undefined
         }
+    }
+    // Backward-compatibility: migrate legacy status values
+    if (this.status === 'open') {
+        this.status = 'active'
     }
     next()
 })

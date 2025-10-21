@@ -15,7 +15,7 @@ import disagreementRoutes from './routes/disagreementRoutes.js';
 import contactRoutes from './routes/contactRoutes.js'; // --- (Step 1: Import the new contact routes) ---
 import aiRoutes from './routes/aiRoutes.js';
 import { getAIClarifyingIntroduction } from './controllers/aiController.js';
-import * as aiAnalysisService from './services/aiAnalysisService.js';
+import { triggerClarityAI } from './services/aiAnalysisService.js';
 
 // Load environment variables from project root, then local, then fallback to services/.env if needed
 import path from 'path';
@@ -29,16 +29,16 @@ dotenv.config({ path: path.resolve(__dirname, '.env') });
 // services/.env (for Docker or alternate setups)
 dotenv.config({ path: path.resolve(__dirname, '../services/.env') });
 
-// Validate AI mediator configuration (non-fatal)
-const AI_MEDIATOR_ID = process.env.AI_MEDIATOR_USER_ID;
-const AI_MEDIATOR_ID_VALID = !!(AI_MEDIATOR_ID && (mongoose?.isValidObjectId ? mongoose.isValidObjectId(AI_MEDIATOR_ID) : mongoose.Types.ObjectId.isValid(AI_MEDIATOR_ID)));
-if (!AI_MEDIATOR_ID) {
-    console.warn('[config] AI_MEDIATOR_USER_ID is not set. DAI will not be able to post messages.');
-    console.warn('[config] To fix: Create a "DAI" user in MongoDB (isAi: true), copy its _id, then set AI_MEDIATOR_USER_ID in Render (Dashboard -> Environment).');
-} else if (!AI_MEDIATOR_ID_VALID) {
-    console.warn(`[config] AI_MEDIATOR_USER_ID is set but not a valid MongoDB ObjectId: ${AI_MEDIATOR_ID}. Use the _id from the AI user document in MongoDB.`);
+// Validate Clarity AI configuration (non-fatal)
+const CLARITY_ID = process.env.CLARITY_USER_ID;
+const CLARITY_ID_VALID = !!(CLARITY_ID && (mongoose?.isValidObjectId ? mongoose.isValidObjectId(CLARITY_ID) : mongoose.Types.ObjectId.isValid(CLARITY_ID)));
+if (!CLARITY_ID) {
+    console.warn('[config] CLARITY_USER_ID is not set. Clarity will not be able to post messages.');
+    console.warn('[config] To fix: Create a "Clarity" user in MongoDB (isAi: true), copy its _id, then set CLARITY_USER_ID in your environment.');
+} else if (!CLARITY_ID_VALID) {
+    console.warn(`[config] CLARITY_USER_ID is set but not a valid MongoDB ObjectId: ${CLARITY_ID}. Use the _id from the AI user document in MongoDB.`);
 } else {
-    console.log('[config] AI_MEDIATOR_USER_ID configured.');
+    console.log('[config] CLARITY_USER_ID configured.');
 }
 
 // Connect to database
@@ -149,7 +149,7 @@ app.use('/api/ai', aiRoutes);
 
 // Lightweight health check (for clients to auto-detect API availability)
 app.get('/api/health', (req, res) => {
-    const aiId = process.env.AI_MEDIATOR_USER_ID || '';
+    const aiId = process.env.CLARITY_USER_ID || '';
     const valid = !!(aiId && (mongoose?.isValidObjectId ? mongoose.isValidObjectId(aiId) : mongoose.Types.ObjectId.isValid(aiId)));
     res.status(200).json({ status: 'ok', aiMediatorConfigured: Boolean(aiId), aiMediatorUserIdValid: valid });
 });
@@ -313,9 +313,9 @@ io.on('connection', (socket) => {
                 const aiIntroMessageText = await getAIClarifyingIntroduction();
 
                 // 3-4. Save the AI's message to the embedded messages array
-                const sender = process.env.AI_MEDIATOR_USER_ID;
+                const sender = process.env.CLARITY_USER_ID;
                 if (!sender) {
-                    console.warn('[socket] AI_MEDIATOR_USER_ID not set; skipping AI intro message broadcast.');
+                    console.warn('[socket] CLARITY_USER_ID not set; skipping AI intro message broadcast.');
                     return;
                 }
                 disagreement.messages.push({ sender, text: aiIntroMessageText, isAIMessage: true });
@@ -329,12 +329,12 @@ io.on('connection', (socket) => {
                 } catch (_) {}
                 const populatedAiMessage = {
                     _id: saved?._id,
-                    sender: aiUserDoc ? { _id: aiUserDoc._id, name: aiUserDoc.name } : { _id: sender, name: 'DAI' },
+                    sender: aiUserDoc ? { _id: aiUserDoc._id, name: aiUserDoc.name } : { _id: sender, name: 'Clarity' },
                     text: aiIntroMessageText,
                     isAIMessage: true
                 };
                 io.to(roomId).emit('receive_message', populatedAiMessage);
-                console.log(`[socket] DAI's official introduction sent to room ${roomId}.`);
+                console.log(`[socket] Clarity's official introduction sent to room ${roomId}.`);
             } else if (numClients > 2) {
                 console.log(`[socket] Subsequent user join trigger met for room ${roomId}.`);
                 // Try to personalize the welcome using provided payload fields; fall back gracefully
@@ -381,14 +381,11 @@ io.on('connection', (socket) => {
             }
             io.to(roomId).emit('receive_message', populatedMessage)
 
-            // Reset inactivity timer on human message
-            aiAnalysisService.resetRoomTimer(roomId, io)
-
-            // Route the message through the AI analysis hub (non-blocking on failure)
+            // Trigger Clarity AI after broadcasting the human message
             try {
-                await aiAnalysisService.analyzeMessage(populatedMessage, roomId, io)
+                await triggerClarityAI(roomId, io)
             } catch (anErr) {
-                console.error('[AI Analysis] analyzeMessage error:', anErr?.message || anErr)
+                console.error('[Clarity AI] triggerClarityAI error:', anErr?.message || anErr)
             }
         } catch (e) {
             console.error('[socket] Error handling send_message:', e?.message || e)
@@ -403,7 +400,7 @@ io.on('connection', (socket) => {
                 const room = io.sockets.adapter.rooms.get(roomId);
                 const numClients = room ? room.size : 0;
                 if (numClients === 0) {
-                    aiAnalysisService.cleanupRoomState(roomId);
+                    // No legacy timers to clean up with Clarity integration
                 }
             }
         } catch (e) {

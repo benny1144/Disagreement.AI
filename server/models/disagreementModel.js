@@ -57,6 +57,11 @@ const disagreementSchema = mongoose.Schema({
         required: [true, 'Please add a brief description'],
         trim: true,
     },
+    // Clarity AI memory/context persisted between turns
+    aiContext: {
+        type: String,
+        default: null,
+    },
     creator: { // Formerly 'user'
         type: mongoose.Schema.Types.ObjectId,
         required: true,

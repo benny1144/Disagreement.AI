@@ -18,6 +18,17 @@ export default function WelcomeEmail({ name }) {
     boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
   }
 
+  const ctaStyle = {
+    display: 'inline-block',
+    marginTop: '12px',
+    backgroundColor: '#2563eb',
+    color: '#ffffff',
+    textDecoration: 'none',
+    padding: '10px 16px',
+    borderRadius: '8px',
+    fontWeight: 600,
+  }
+
   return React.createElement(
     'div',
     { style: containerStyle },
@@ -31,8 +42,13 @@ export default function WelcomeEmail({ name }) {
         'We\'re excited to have you on board. You can start a new disagreement, invite participants, and collaborate with our AI mediator.'
       ),
       React.createElement(
+        'a',
+        { href: 'https://disagreement.ai/dashboard', style: ctaStyle },
+        'Start a New Disagreement'
+      ),
+      React.createElement(
         'p',
-        { style: { margin: 0, color: '#334155' } },
+        { style: { margin: '12px 0 0 0', color: '#334155' } },
         'If you have any questions, just hit reply to this email or contact us at contact@disagreement.ai.'
       ),
     ),

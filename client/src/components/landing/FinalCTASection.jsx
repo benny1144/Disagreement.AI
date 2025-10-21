@@ -7,7 +7,7 @@ export default function FinalCTASection() {
                 <h2 className="text-3xl md:text-4xl font-bold text-white text-balance">
                     Ready for a better way to resolve your disputes?
                 </h2>
-                <a href="/register" className="block mt-6">
+                <a href="/signup" className="block mt-6">
                     <Button size="lg" className="bg-white text-[#5D5FEF] hover:bg-gray-100 rounded-full px-8 py-6 text-lg font-semibold">
                         Sign Up Now For FREE
                     </Button>

@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Component, lazy, Suspense } from 'react';
 import Layout from './components/Layout';
 import PublicLayout from '@/components/layout/PublicLayout';
@@ -72,7 +72,8 @@ function App() {
                               <Route element={<PublicLayout />}>
                                 <Route path="/" element={<HomePage />} />
                                 <Route path="/login" element={<LoginPage />} />
-                                <Route path="/register" element={<SignUpPage />} />
+                                <Route path="/signup" element={<SignUpPage />} />
+                                <Route path="/register" element={<Navigate to="/signup" replace />} />
                                 <Route path="/invite/:token" element={<InviteAcceptPage />} />
                                 <Route path="/contact" element={<ContactPage />} />
                                 <Route path="/privacy" element={<PrivacyPage />} />

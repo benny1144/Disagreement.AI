@@ -67,7 +67,7 @@ export default function InviteAcceptPage() {
 
     // If not logged in, redirect to Sign Up and carry the token in state
     if (!isLoggedIn) {
-      navigate('/register', { state: { fromInvite: token } })
+      navigate('/signup', { state: { fromInvite: token } })
       return
     }
 

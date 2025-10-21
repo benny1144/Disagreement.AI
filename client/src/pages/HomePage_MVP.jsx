@@ -16,7 +16,7 @@ export default function HomePage() {
                     <p className="text-lg md:text-xl text-muted-foreground leading-relaxed">
                         <strong>From Conflict To Clarity</strong>. AI-powered dispute resolution that's fair, fast, and transparent. Join the future of conflict resolution.
                     </p>
-                    <a href="/register" className="block mt-8 md:mt-12">
+                    <a href="/signup" className="block mt-8 md:mt-12">
                         <Button size="lg" className="bg-[#5D5FEF] hover:bg-[#4D4FDF] text-white rounded-full px-8 py-6 text-lg">
                             Sign Up Now For FREE
                         </Button>
@@ -204,7 +204,7 @@ export default function HomePage() {
                     <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white text-balance">
                         Ready for a better way to resolve your disputes?
                     </h2>
-                    <a href="/register" className="block mt-8 md:mt-12">
+                    <a href="/signup" className="block mt-8 md:mt-12">
                         <Button
                             size="lg"
                             className="bg-white text-[#5D5FEF] hover:bg-gray-100 rounded-full px-8 py-6 text-lg font-semibold"

@@ -43,7 +43,7 @@ export default function PublicHeader() {
               Login
             </Button>
           </Link>
-          <Link to={{ pathname: '/register' }}>
+          <Link to={{ pathname: '/signup' }}>
             <Button className="bg-[#2667FF] hover:bg-[#1f54cc] text-white rounded-full px-5">
               Sign Up
             </Button>
@@ -73,7 +73,7 @@ export default function PublicHeader() {
               Login
             </Button>
           </Link>
-          <Link to={{ pathname: '/register' }} className="w-full" onClick={() => setOpen(false)}>
+          <Link to={{ pathname: '/signup' }} className="w-full" onClick={() => setOpen(false)}>
             <Button className="w-full justify-center bg-[#2667FF] hover:bg-[#1f54cc] text-white rounded-full">
               Sign Up
             </Button>

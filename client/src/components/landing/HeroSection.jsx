@@ -25,7 +25,7 @@ export default function HeroSection() {
                     ></iframe>
                 </div>
                 {/* 4. Primary CTA */}
-                <a href="/register" className="block mt-2 md:mt-4">
+                <a href="/signup" className="block mt-2 md:mt-4">
                     <Button size="lg" className="bg-[#5D5FEF] hover:bg-[#4D4FDF] text-white rounded-full px-8 py-6 text-lg">
                         Sign Up Now For FREE
                     </Button>
